@@ -110,11 +110,9 @@ class FlaskApp:
         def send_key():
             # 从url上获取参数，key
             key = request.args.get('key')
-            #key中的+号还原
-            key = key.replace(' ', '+')
-            print(key)
             # 先激活窗口
             self.controller.handle_activate_window()
             result = self.window_service.send_key(key)
+            time.sleep(0.1)
             self.controller._handle_result(result, f"已发送按键 {key}", "按键发送失败")
             return jsonify({"status": "success", "message": f"已发送按键 {key}"})

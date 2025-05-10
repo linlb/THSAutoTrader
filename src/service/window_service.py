@@ -88,7 +88,6 @@ class WindowService:
         try:
             # 按空格分隔按键序列
             key_sequence = [k.strip().upper() for k in keys.split(' ')]
-            
             # 按顺序处理每个按键
             for key in key_sequence:
                 if key.startswith('{') and key.endswith('}'):

@@ -19,7 +19,7 @@ class AutomationController:
         self.flask_server.run_async()
         self.logger.add_log(f"HTTP服务已启动")
         self.logger.add_log(f"健康检查端点：http://{self.flask_server.host}:{self.flask_server.port}/health")
-        self.logger.add_log(f"下单接口：http://{self.flask_server.host}:{self.flask_server.port}/send_key?key=300033+ENTER+21+ENTER")
+        self.logger.add_log(f"下单接口：http://{self.flask_server.host}:{self.flask_server.port}/send_key?key=600000+ENTER+21+ENTER+++B")
 
     def handle_activate_window(self):
         """处理窗口激活请求"""
