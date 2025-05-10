@@ -7,7 +7,7 @@ import win32process
 from src.models.application_model import OperationResult
 from src.util.logger import Logger
 from pywinauto import Desktop
-from pywinauto.controls.uia_controls import ListItemWrapper
+from pywinauto.clipboard import GetData
 from config.key_config import KEY_MAP
 
 class WindowService:
@@ -50,6 +50,35 @@ class WindowService:
         except Exception as e:
             return OperationResult(False, error=f"窗口激活失败：{str(e)}")
 
+    def _process_single_key(self, key: str) -> OperationResult:
+        """
+        处理单个按键
+        :param key: 单个按键字符串
+        :return: OperationResult
+        """
+        if key == '':  # 处理空字符停顿
+            time.sleep(0.5)
+            return OperationResult(True)
+        
+        if len(key) == 1:
+            vk = ord(key.upper())
+        elif key in KEY_MAP:
+            vk = KEY_MAP[key]
+        else:
+            # 字符串转为数组，逐个发送
+            for char in key:
+                vk = ord(char.upper())
+                win32api.keybd_event(vk, 0, 0, 0)  # 按下
+                win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)  # 释放
+                time.sleep(0.05)
+            return OperationResult(True)
+        
+        # 发送单个按键
+        win32api.keybd_event(vk, 0, 0, 0)  # 按下
+        win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)  # 释放
+        time.sleep(0.05)  # 添加短暂延迟确保按键顺序
+        return OperationResult(True)
+
     def send_key(self, keys) -> OperationResult:
         """
         发送组合键（支持格式：'CTRL C' 或单个键，花括号内为组合键）
@@ -70,94 +99,155 @@ class WindowService:
                     if not result.success:
                         return result
                 else:
-                    # 处理普通按键
-                    if key == '':  # 处理空字符停顿
-                        time.sleep(0.5)
-                        continue
-                    if len(key) == 1:
-                        vk = ord(key.upper())
-                    elif key in KEY_MAP:
-                        vk = KEY_MAP[key]
-                    else:
-                        # 字符串转为数组，逐个发送
-                        for char in key:
-                            vk = ord(char.upper())
-                            win32api.keybd_event(vk, 0, 0, 0)  # 按下
-                            win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)  # 释放
-                            time.sleep(0.05)
-                        continue
-                    
-                    # 发送单个按键
-                    win32api.keybd_event(vk, 0, 0, 0)  # 按下
-                    win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)  # 释放
-                    time.sleep(0.05)  # 添加短暂延迟确保按键顺序
+                    result = self._process_single_key(key)
+                    if not result.success:
+                        return result
             
             return OperationResult(True)
         except Exception as e:
             return OperationResult(False, error=f"组合键发送失败：{str(e)}")
-   
-    def send_command(self, command: str):
-        """发送组合命令到活动窗口"""
-        try:
-            # 实现具体的按键发送逻辑
-            # 示例实现（需要根据实际使用的库调整）：
-            import pyautogui
-            pyautogui.write(command)
-            self.logger.add_log(f"已成功发送命令: {command}")
-            return OperationResult(True, "命令发送成功")
-        except Exception as e:
-            error_msg = f"命令发送失败: {str(e)}"
-            self.logger.add_log(error_msg)
-            return OperationResult(False, error_msg)
-
-    def find_and_click_dialog_button(self, class_name='#32770', control_id=1006):
+        
+    def _get_virtual_key_codes(self, key_sequence: list) -> OperationResult:
         """
-        查找并点击指定对话框中的按钮
-        :param class_name: 对话框类名
-        :param control_id: 按钮的control_id
+        将按键序列转换为虚拟键码
+        :param key_sequence: 按键序列
+        :return: OperationResult(包含虚拟键码列表)
+        """
+        vk_codes = []
+        for key in key_sequence:
+            if len(key) == 1:
+                vk_codes.append(ord(key.upper()))
+            elif key in KEY_MAP:
+                vk_codes.append(KEY_MAP[key])
+            else:
+                return OperationResult(False, error=f"无效的按键: {key}")
+        return OperationResult(True, data=vk_codes)
+
+    def _press_modifier_keys(self, vk_codes: list, delay: float) -> None:
+        """
+        按下所有修饰键
+        :param vk_codes: 虚拟键码列表
+        :param delay: 按键之间的延迟时间
+        """
+        for vk in vk_codes[:-1]:
+            win32api.keybd_event(vk, 0, 0, 0)
+            time.sleep(delay)
+
+    def _release_modifier_keys(self, vk_codes: list, delay: float) -> None:
+        """
+        释放所有修饰键
+        :param vk_codes: 虚拟键码列表
+        :param delay: 按键之间的延迟时间
+        """
+        for vk in reversed(vk_codes[:-1]):
+            win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+            time.sleep(delay)
+
+    def send_key_combination(self, keys: str, delay: float = 0.1) -> OperationResult:
+        """
+        发送组合键（支持格式：'CTRL+SHIFT+A'）
+        :param keys: 组合键字符串（用+连接）
+        :param delay: 按键之间的延迟时间（秒）
         :return: OperationResult
         """
         try:
-            dialogs = Desktop(backend='uia').windows(class_name=class_name)
+            # 拆分组合键（支持大小写混合）
+            key_sequence = [k.strip().upper() for k in keys.split('+')]
+            # 恢复转义的+
+            key_sequence = [k.replace('\\PLUS', '+') for k in key_sequence]
+            
+            # 转换所有按键到虚拟键码
+            vk_result = self._get_virtual_key_codes(key_sequence)
+            if not vk_result.success:
+                return vk_result
+            vk_codes = vk_result.data
+
+            # 按下所有修饰键
+            self._press_modifier_keys(vk_codes, delay)
+            
+            # 按下并释放主键
+            win32api.keybd_event(vk_codes[-1], 0, 0, 0)
+            time.sleep(delay)
+            win32api.keybd_event(vk_codes[-1], 0, win32con.KEYEVENTF_KEYUP, 0)
+            
+            # 释放所有修饰键
+            self._release_modifier_keys(vk_codes, delay)
+            
+            return OperationResult(True)
+        except Exception as e:
+            return OperationResult(False, error=f"组合键发送失败：{str(e)}")
+
+    def get_target_window(self, window_params) -> OperationResult:
+        """
+        根据参数获取目标窗口
+        :param window_params: 窗口查找参数（字典）
+        :return: OperationResult(包含找到的窗口)
+        """
+        try:
+            dialogs = Desktop(backend='uia').windows(**window_params)
             if not dialogs:
                 return OperationResult(False, error="没有找到任何对话框")
             
             self.logger.add_log(f"找到的对话框数量: {len(dialogs)}")
             
-            for dialog in dialogs:
-                try:
-                    descendants = dialog.descendants()
-                    for element in descendants:
-                        if element.control_id() == control_id:
-                            element.click_input()
-                            return OperationResult(True, data=f"成功点击control_id={control_id}的按钮")
-                except Exception as e:
-                    return OperationResult(False, error=f"查找或点击按钮时出错: {str(e)}")
+            # 如果指定了标题，过滤匹配标题的窗口
+            if 'title' in window_params:
+                for dialog in dialogs:
+                    if dialog.window_text() == window_params['title']:
+                        return OperationResult(True, data=dialog)
+                return OperationResult(False, error="未找到匹配标题的窗口")
             
-            return OperationResult(False, error=f"未找到control_id={control_id}的按钮")
+            return OperationResult(True, data=dialogs[0])
         except Exception as e:
-            return OperationResult(False, error=f"对话框操作失败: {str(e)}")
+            return OperationResult(False, error=f"获取窗口失败: {str(e)}")
 
-    def _select_order_in_list(self, order_id) -> OperationResult:
+    def find_element_in_window(self, window, control_id) -> OperationResult:
         """
-        在订单列表中定位并选择指定订单
-        :param order_id: 需要操作的订单ID
-        :return: OperationResult
+        在指定窗口中查找控件元素
+        :param window: 目标窗口
+        :param control_id: 元素的control_id
+        :return: OperationResult(包含找到的元素)
         """
         try:
-            # 获取撤单窗口
-            dialog = Desktop(backend='uia').window(class_name='#32770')
-            if not dialog.exists():
-                return OperationResult(False, error="未找到撤单窗口")
-
-            # 在列表控件中查找订单
-            list_ctrl = dialog.child_window(class_name="SysListView32")
-            for item in list_ctrl.items():
-                if isinstance(item, ListItemWrapper):
-                    if order_id in item.texts():
-                        item.select()
-                        return OperationResult(True)
-            
-            return OperationResult(False, error=f"未找到订单ID: {order_id}")
+            descendants = window.descendants()
+            for element in descendants:
+                if element.control_id() == control_id:
+                    return OperationResult(True, data=element)
+            return OperationResult(False, error=f"未找到control_id={control_id}的元素")
         except Exception as e:
-            return OperationResult(False, error=f"订单选择异常: {str(e)}") 
+            return OperationResult(False, error=f"查找元素时出错: {str(e)}")
+
+    def find_element(self, window_params={'class_name': '#32770'}, control_id=1006) -> OperationResult:
+        """
+        查找指定对话框中的元素
+        :param window_params: 窗口查找参数（字典），支持所有windows()方法的参数
+        :param control_id: 元素的control_id
+        :return: OperationResult(包含找到的元素)
+        """
+        # 先获取目标窗口
+        window_result = self.get_target_window(window_params)
+        if not window_result.success:
+            return window_result
+        
+        # 在窗口中查找元素
+        return self.find_element_in_window(window_result.data, control_id)
+
+    def get_clipboard(self, retries=3, delay=0.1) -> OperationResult:
+        """
+        获取剪切板里的数据
+        :param retries: 重试次数，默认3次
+        :param delay: 每次重试的延迟时间，默认0.1秒
+        :return: OperationResult
+        """
+        for i in range(retries):
+            try:
+                # 获取剪切板数据
+                data = GetData()
+                if data:
+                    return OperationResult(True, data=data)
+                else:
+                    return OperationResult(False, error="剪切板中没有数据")
+            except Exception as e:
+                if i == retries - 1:  # 最后一次尝试仍然失败
+                    return OperationResult(False, error=f"获取剪切板数据失败: {str(e)}")
+                time.sleep(delay)  # 等待后重试
