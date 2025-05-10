@@ -1,0 +1,45 @@
+[project]
+name = "trader"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "linlb",email = "595535892@qq.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "pyautogui (>=0.9.54,<0.10.0)",
+    "keyboard (>=0.13.5,<0.14.0)",
+    "pywin32 (>=308,<309); sys_platform == 'win32'",
+    "pywinauto (>=0.6.9,<0.7.0)",
+    "psutil (>=6.1.1,<7.0.0)",
+    "urllib3 (>=2.3.0,<3.0.0)",
+    "easyutils (>=0.1.7,<0.2.0)",
+    "pytesseract (>=0.3.13,<0.4.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "requests (>=2.32.3,<3.0.0)",
+    "aiohttp (>=3.11.11,<4.0.0)",
+    "flask-cors (>=5.0.0,<6.0.0)",
+    "openai (>=1.61.0,<2.0.0)",
+    "pymacaroons; sys_platform == 'darwin'",
+    "pytest; extra == 'test'",
+    "pyinstaller (>=6.11.1,<7.0.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+start = "main:main"
+dev = "main:dev"
+build = "scripts:build"
+
+
+[tool.poetry.group.dev.dependencies]
+hupper = "^1.12.1"
+
+[tool.pyinstaller]
+console = false
+entry-point = "main.py"
