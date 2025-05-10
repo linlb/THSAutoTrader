@@ -6,3 +6,4 @@ dist/*.log
 dist/*/*.json
 *.log
 *.pyc
+.cursorrules
