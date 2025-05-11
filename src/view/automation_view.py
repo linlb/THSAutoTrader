@@ -72,6 +72,16 @@ class AutomationView(ttk.Frame):
         
         ttk.Button(key_frame, text="发送按键", 
                   command=self.controller.handle_send_key).grid(row=0, column=2)
+        # 新增鼠标指令输入行
+        mouse_frame = ttk.Frame(parent_frame)
+        mouse_frame.pack(pady=5, fill=tk.X, padx=10)
+        
+        ttk.Label(mouse_frame, text="鼠标指令:").grid(row=0, column=0, sticky='w')
+        # self.mouse_entry = ttk.Entry(mouse_frame, width=30)
+        # self.mouse_entry.grid(row=0, column=1, padx=5)
+        
+        ttk.Button(mouse_frame, text="下单点击", 
+                  command=self.controller.handle_click).grid(row=0, column=2)
 
     def select_application(self, event=None):
         """通过输入路径选择应用程序"""

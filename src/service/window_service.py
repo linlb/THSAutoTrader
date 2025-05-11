@@ -186,16 +186,12 @@ class WindowService:
             dialogs = Desktop(backend='uia').windows(**window_params)
             if not dialogs:
                 return OperationResult(False, error="没有找到任何对话框")
-            
+            print(dialogs)
             self.logger.add_log(f"找到的对话框数量: {len(dialogs)}")
-            
-            # 如果指定了标题，过滤匹配标题的窗口
-            if 'title' in window_params:
-                for dialog in dialogs:
-                    if dialog.window_text() == window_params['title']:
-                        return OperationResult(True, data=dialog)
-                return OperationResult(False, error="未找到匹配标题的窗口")
-            
+
+            for dialog in dialogs:
+                print(dialog.process_id(), dialog.window_text())
+
             return OperationResult(True, data=dialogs[0])
         except Exception as e:
             return OperationResult(False, error=f"获取窗口失败: {str(e)}")
@@ -211,25 +207,12 @@ class WindowService:
             descendants = window.descendants()
             for element in descendants:
                 if element.control_id() == control_id:
+                    print(element.control_id(), element.window_text()) 
                     return OperationResult(True, data=element)
             return OperationResult(False, error=f"未找到control_id={control_id}的元素")
         except Exception as e:
             return OperationResult(False, error=f"查找元素时出错: {str(e)}")
 
-    def find_element(self, window_params={'class_name': '#32770'}, control_id=1006) -> OperationResult:
-        """
-        查找指定对话框中的元素
-        :param window_params: 窗口查找参数（字典），支持所有windows()方法的参数
-        :param control_id: 元素的control_id
-        :return: OperationResult(包含找到的元素)
-        """
-        # 先获取目标窗口
-        window_result = self.get_target_window(window_params)
-        if not window_result.success:
-            return window_result
-        
-        # 在窗口中查找元素
-        return self.find_element_in_window(window_result.data, control_id)
 
     def get_clipboard(self, retries=3, delay=0.1) -> OperationResult:
         """
@@ -250,3 +233,28 @@ class WindowService:
                 if i == retries - 1:  # 最后一次尝试仍然失败
                     return OperationResult(False, error=f"获取剪切板数据失败: {str(e)}")
                 time.sleep(delay)  # 等待后重试
+
+    def click_element(self, window_params, control_id) -> OperationResult:
+        """
+        点击元素
+        :param window_params: 窗口查找参数
+        :param control_id: 元素的control_id
+        :return: OperationResult
+        """
+        # 先获取目标窗口
+        window_result = self.get_target_window(window_params)
+        if not window_result.success:
+            return window_result
+        
+        # 在窗口中查找元素
+        element_result = self.find_element_in_window(window_result.data, control_id)
+        if not element_result.success:
+            return element_result
+        
+        # 执行点击操作
+        try:
+            element = element_result.data
+            element.click_input()
+            return OperationResult(True, data="元素点击成功")
+        except Exception as e:
+            return OperationResult(False, error=f"元素点击失败: {str(e)}")

@@ -1,7 +1,7 @@
 build/
 cache/
 video/
-dist/
+!dist/*.exe
 dist/*.log
 dist/*/*.json
 *.log

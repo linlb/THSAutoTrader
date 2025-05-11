@@ -19,7 +19,7 @@ class AutomationController:
         self.flask_server.run_async()
         self.logger.add_log(f"HTTP服务已启动")
         self.logger.add_log(f"健康检查端点：http://{self.flask_server.host}:{self.flask_server.port}/health")
-        self.logger.add_log(f"下单接口：http://{self.flask_server.host}:{self.flask_server.port}/send_key?key=600000+ENTER+21+ENTER+++B")
+        self.logger.add_log(f"下单接口：http://{self.flask_server.host}:{self.flask_server.port}/xiadan?key=600000+ENTER+21+ENTER")
 
     def handle_activate_window(self):
         """处理窗口激活请求"""
@@ -33,6 +33,12 @@ class AutomationController:
         key = self.view.key_entry.get().strip()
         result = self.window_service.send_key(key)
         self._handle_result(result, f"已发送按键 {key}", "按键发送失败")
+
+    def handle_click(self):
+        """处理模拟点击请求"""
+        result = self.window_service.click_element({'class_name': '#32770', 'title':''}, 1006)
+        self._handle_result(result, f"成功点击control_id=1006的按钮", "点击按钮失败")
+
 
     def _handle_result(self, result, success_msg, fail_msg):
         """统一处理操作结果"""
