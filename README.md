@@ -42,10 +42,6 @@ poetry install
 poetry run dev
 ```
 
-#### 生产模式
-
-```bash
-poetry run start
 ```
 
 ### 项目打包
