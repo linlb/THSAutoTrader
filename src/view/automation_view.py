@@ -6,10 +6,10 @@ from src.controller.automation_controller import AutomationController
 import threading
 
 class AutomationView(ttk.Frame):
-    def __init__(self, master):
+    def __init__(self, master, controller):
         super().__init__(master)
         # 先初始化控制器和服务
-        self.controller = AutomationController(self)
+        self.controller = controller
         self._init_components()
         self._bind_logger()
         

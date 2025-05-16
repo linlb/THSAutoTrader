@@ -108,12 +108,12 @@ class FlaskApp:
         # 鼠标点击
         @self.app.route('/click', methods=['GET'])
         def click():
-            result = self.controller.handle_execute_trading()
-            if result.success:
+            try:
+                self.controller.handle_click()
                 return jsonify({"status": "success", "message": "下单成功"})
-            else:
-                self.logger.add_log(f"下单失败: {result.error}")
-                return jsonify({"status": "error", "message": result.error}), 500
+            except Exception as e:
+                self.logger.add_log(f"下单异常: {str(e)}")
+                return jsonify({"status": "error", "message": f"下单异常: {str(e)}"}), 500
         
         # send_key
         @self.app.route('/send_key', methods=['GET'])
@@ -124,9 +124,8 @@ class FlaskApp:
                 # 先激活窗口
                 self.controller.handle_activate_window()
                 time.sleep(0.1)
-                result = self.window_service.send_key(key)
+                self.window_service.send_key(key)
                 time.sleep(0.1)
-                self.controller._handle_result(result, f"已发送按键 {key}", "按键发送失败")
                 return jsonify({"status": "success", "message": f"已发送按键 {key}"})
             except Exception as e:
                 self.logger.add_log(f"按键发送失败: {str(e)}")
@@ -141,13 +140,10 @@ class FlaskApp:
                 # 先激活窗口
                 self.controller.handle_activate_window()
                 time.sleep(0.1)
-                result = self.window_service.send_key(key)
+                self.window_service.send_key(key)
                 time.sleep(0.1)
-                self.controller._handle_result(result, f"已发送按键 {key}", "按键发送失败")
-                time.sleep(0.5)
                 # 下单点击
-                result = self.window_service.click_element({'class_name': '#32770', 'title':''}, 1006)
-                self.controller._handle_result(result, f"成功点击control_id=1006的按钮", "点击按钮失败")
+                self.window_service.click_element({'class_name': '#32770', 'title':''}, 1006)
                 return jsonify({"status": "success", "message": f"已发送按键 {key}"})
             except Exception as e:
                 self.logger.add_log(f"按键发送失败: {str(e)}")
