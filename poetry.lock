@@ -5835,6 +5835,49 @@ files = [
 ]
 
 [[package]]
+name = "tkinterweb"
+version = "4.3.1"
+description = "HTML/CSS viewer for Tkinter"
+optional = false
+python-versions = ">=3.2"
+groups = ["main"]
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "tkinterweb-4.3.1-py3-none-any.whl", hash = "sha256:56a68ea542ca123259fc474c0cff9d8ded080b7451689799390faf8e7d5b433d"},
+    {file = "tkinterweb-4.3.1.tar.gz", hash = "sha256:8035929d8fafb3e3cebea8172e530211565c253a2833fcb03799d92b69e513a3"},
+]
+
+[package.dependencies]
+pillow = "*"
+tkinterweb-tkhtml = "*"
+
+[package.extras]
+full = ["cairosvg", "pythonmonkey"]
+javascript = ["pythonmonkey"]
+svg = ["cairosvg"]
+
+[[package]]
+name = "tkinterweb-tkhtml"
+version = "1.0"
+description = "HTML/CSS viewer for Tkinter"
+optional = false
+python-versions = "*"
+groups = ["main"]
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "tkinterweb-tkhtml-1.0.tar.gz", hash = "sha256:3a99550a9cd802938203c58f9c7846caafdc62b65ca03510be2e6915ef36ef72"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-any.whl", hash = "sha256:b83e0f8297bac0b000f1f4ceca22719a556b52d74aa95860376a73630df1c63e"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-linux_armv7l.whl", hash = "sha256:f7db80a02318f0f3403a68992171a970273c6d98c21146bd64451c50319fcbc9"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-macosx_10_6_x86_64.whl", hash = "sha256:000b5740fcae2761f2e894b6d04b4ee26f46b6c5dfc4e09cdb2b983fa81b7ea9"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:711f025e915219e0e2838a266ac7ee1a158cef70d0bfbd78938b56d2cd84ad2e"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-manylinux1_i686.whl", hash = "sha256:986769ae52bb143bf167f0ef80d19f68cbf76adb6bb3989c54c4268209e5a7ef"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-manylinux1_x86_64.whl", hash = "sha256:0dc2038c6dddb57e9616be44c31ba2bbc647ba3f9d7ce212674da7abbe338c08"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:3baa366fee7b0856c286b260f63adc09c204946376178d13a4cd6e5ccce7bb60"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-win32.whl", hash = "sha256:ccbdc99ef204f775d92f494927c09b72963a3bf8fbb656899e5557eb62480346"},
+    {file = "tkinterweb_tkhtml-1.0-py3-none-win_amd64.whl", hash = "sha256:411211488c1eec7daefb8b4425ec2f056061cba63e2fc8bddef35462ebe93d82"},
+]
+
+[[package]]
 name = "tomli"
 version = "2.2.1"
 description = "A lil' TOML parser"
@@ -6086,4 +6129,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.14"
-content-hash = "33a800914d71ea139649fc602449b6f9136414e578ba6c0eb452b8fc8e2efc4a"
+content-hash = "9c67b9815ce1d991643c8f7306ea092d1d746e7ccd683dfb1c6d240bea623ecb"

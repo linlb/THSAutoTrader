@@ -1,14 +1,8 @@
 import json
-from dataclasses import dataclass
 import os
+from ..common.operation_result import OperationResult  # 从common目录导入
 
-@dataclass
-class OperationResult:
-    success: bool
-    error: str = None
-    data: object = None
-
-class ApplicationModel:
+class AppModel:
     def __init__(self):
         self._config = self._load_config()
 
@@ -18,7 +12,6 @@ class ApplicationModel:
     def set_target_app(self, path):
         self._config['default_app_path'] = path
         self._save_config()
-        return OperationResult(True)
 
     def _load_config(self):
         try:

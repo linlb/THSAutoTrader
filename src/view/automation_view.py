@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinterweb import HtmlFrame
 from src.util.logger import Logger
 from src.controller.automation_controller import AutomationController
 import threading
@@ -23,11 +24,13 @@ class AutomationView(ttk.Frame):
         # 创建主界面组件
         self.create_widgets(main_container)
         
+        # 新增WebView组件
+        # self._create_webview(main_container)
+        
         # 将原控制按钮移动到控制面板
         self._create_control_buttons()
         
         self.pack(fill=tk.BOTH, expand=True)
-        self.init_services()
 
     def _init_components(self):
         """初始化界面组件"""
@@ -114,10 +117,30 @@ class AutomationView(ttk.Frame):
             command=activate_and_save
         ).pack(pady=5)
 
-    def init_services(self):
-        """初始化HTTP服务等基础服务"""
-        self.controller.init_http_server()
-
     def get_key_command(self):
         """获取按键指令输入"""
         return self.key_entry.get().strip()
+
+    def _create_webview(self, parent_frame):
+        """创建WebView组件"""
+        web_frame = ttk.Frame(parent_frame)
+        web_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # 创建HtmlFrame
+        self.webview = HtmlFrame(web_frame, messages_enabled=False)
+        self.webview.pack(fill=tk.BOTH, expand=True)
+        
+        # 增加加载状态检测
+        self._load_webpage_with_retry("https://www.bing.com", retries=3)
+
+    def _load_webpage_with_retry(self, url, retries=3):
+        """带重试机制的页面加载"""
+        try:
+            self.webview.load_url(url)
+            Logger().add_log(f"成功加载页面: {url}")
+        except Exception as e:
+            if retries > 0:
+                Logger().add_log(f"页面加载失败，正在重试... ({retries}次剩余)")
+                threading.Timer(2.0, lambda: self._load_webpage_with_retry(url, retries-1)).start()
+            else:
+                Logger().add_log(f"无法加载页面: {url}，错误: {str(e)}")
