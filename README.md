@@ -28,6 +28,7 @@
 
 1. 安装 Python 3.11
 2. 安装 Poetry
+3. window系统
 
 ### 安装依赖
 
