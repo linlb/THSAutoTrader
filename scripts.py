@@ -12,4 +12,15 @@ def build():
         "--icon", "static/icon.ico",
         "--name", "下单辅助程序",
         "main.py"
-    ]) 
+    ])
+
+    # 拷贝Tesseract-OCR目录到dist目录
+    tesseract_dir = "Tesseract-OCR"
+    if os.path.exists(tesseract_dir):
+        import shutil
+        dist_dir = "dist"
+        target_path = os.path.join(dist_dir, tesseract_dir)
+        if not os.path.exists(target_path):  # 检查目标目录是否已存在
+            shutil.copytree(tesseract_dir, target_path)
+    else:
+        raise FileNotFoundError(f"Tesseract-OCR目录 {tesseract_dir} 不存在") 

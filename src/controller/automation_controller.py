@@ -2,6 +2,7 @@ from src.util.logger import Logger
 from src.models.app_model import AppModel
 from src.service.window_service import WindowService
 from src.service.position_service import PositionService
+import os
 class AutomationController:
     def __init__(self):
         self.view = None
@@ -38,5 +39,7 @@ class AutomationController:
 
     def get_position(self):
         """获取持仓信息"""
+        root_dir = self.model.get_cache_dir()
+        print(root_dir)
         self.handle_activate_window()
         return self.position_service.get_position()

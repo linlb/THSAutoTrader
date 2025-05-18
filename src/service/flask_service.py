@@ -117,7 +117,6 @@ class FlaskApp:
                 })
             except Exception as e:
                 self.logger.add_log(f"获取持仓失败: {str(e)}")
-                print(e)
                 return jsonify({
                     "status": "error",
                     "message": f"获取持仓失败: {str(e)}"

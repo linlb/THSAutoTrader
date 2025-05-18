@@ -142,7 +142,7 @@ class WindowService:
         """
         dialogs = Desktop(backend='uia').windows(**window_params)
         if not dialogs:
-            raise Exception("没有找到任何对话框")
+            return None
         self.logger.add_log(f"找到的对话框数量: {len(dialogs)}")
         return dialogs[0]
 

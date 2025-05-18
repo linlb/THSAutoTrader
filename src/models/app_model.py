@@ -12,7 +12,7 @@ class AppModel:
     def set_target_app(self, path):
         self._config['default_app_path'] = path
         self._save_config()
-        
+
     def get_trading_app(self):
         """获取下单程序路径，路径规则为：app_path同级目录下的xiadan.exe"""
         app_path = self.get_target_app()
@@ -32,3 +32,9 @@ class AppModel:
         os.makedirs('config', exist_ok=True)
         with open('config/app_config.json', 'w') as f:
             json.dump(self._config, f) 
+    
+    def get_cache_dir(self):
+        return "cache/"
+    
+    def get_tesseract_dir(self):
+        return "Tesseract-OCR/"

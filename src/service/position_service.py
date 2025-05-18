@@ -11,10 +11,8 @@ class PositionService:
 
     def _get_captcha_image_path(self) -> str:
         """获取验证码图片保存路径"""
-        # 获取程序根目录
-        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         # 创建cache目录
-        cache_dir = os.path.join(root_dir, "cache")
+        cache_dir = self.model.get_cache_dir()
         os.makedirs(cache_dir, exist_ok=True)
         # 返回图片路径
         return os.path.join(cache_dir, "image.png")
@@ -40,13 +38,20 @@ class PositionService:
         """获取当前持仓"""
         # 先激活程序
         app_path = self.model.get_trading_app()
-        self.window_service.activate_window(app_path)
-        # 快捷键操作
-        self.window_service.send_key('F4 {CTRL+C}')
+        try:
+            self.window_service.activate_window(app_path)
+        except Exception as e:
+            self.logger.add_log(f"激活窗口失败，请检查下单程序是否已启动: {str(e)}")
+            return False
         
         # 获取目标窗口
         window_result = self.window_service.get_target_window({'title': '网上股票交易系统5.0'})
         print(window_result)
+        if window_result is None:
+            raise Exception("未找到目标窗口")
+
+        # 快捷键操作
+        self.window_service.send_key('F4 {CTRL+C}')
         # 查找验证码图片元素
         image_result = self.window_service.find_element_in_window(window_result, 2405)
         #image_result如果为none，则直接获取剪切板数据
@@ -102,8 +107,10 @@ class PositionService:
         try:
             import pytesseract
             from PIL import Image
-            # 设置tesseract路径
-            pytesseract.pytesseract.tesseract_cmd = r'D:\\Program Files\\Tesseract-OCR\tesseract.exe'
+            import os
+            # 获取程序根目录并设置tesseract路径
+            tesseract_dir = self.model.get_tesseract_dir()
+            pytesseract.pytesseract.tesseract_cmd = os.path.join(tesseract_dir, "tesseract.exe")
             # 打开图片
             image = Image.open(image_path)
             # 识别图片中的文字，只识别数字
