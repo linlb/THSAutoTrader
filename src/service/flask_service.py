@@ -105,6 +105,24 @@ class FlaskApp:
         def health_check():
             return jsonify({"status": "healthy", "timestamp": time.time()})
         
+        # 获取持仓信息
+        @self.app.route('/position', methods=['GET'])
+        def get_position():
+            try:
+                # 调用controller获取持仓信息
+                position = self.controller.get_position()
+                return jsonify({
+                    "status": "success",
+                    "data": position
+                })
+            except Exception as e:
+                self.logger.add_log(f"获取持仓失败: {str(e)}")
+                print(e)
+                return jsonify({
+                    "status": "error",
+                    "message": f"获取持仓失败: {str(e)}"
+                }), 500
+        
         # 鼠标点击
         @self.app.route('/click', methods=['GET'])
         def click():
@@ -147,5 +165,5 @@ class FlaskApp:
                 return jsonify({"status": "success", "message": f"已发送按键 {key}"})
             except Exception as e:
                 self.logger.add_log(f"按键发送失败: {str(e)}")
-                return jsonify({"status": "error", "message": f"按键发送失败: {str(e)}"})
-
+                return jsonify({"status": "error", "message": f"下单异常: {str(e)}"})
+        

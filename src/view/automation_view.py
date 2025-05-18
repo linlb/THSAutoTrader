@@ -2,11 +2,10 @@ import tkinter as tk
 from tkinter import ttk
 from tkinterweb import HtmlFrame
 from src.util.logger import Logger
-from src.controller.automation_controller import AutomationController
 import threading
 
 class AutomationView(ttk.Frame):
-    def __init__(self, master, controller):
+    def __init__(self, master, controller = None):
         super().__init__(master)
         # 先初始化控制器和服务
         self.controller = controller
@@ -74,7 +73,7 @@ class AutomationView(ttk.Frame):
         self.key_entry.grid(row=0, column=1, padx=5)
         
         ttk.Button(key_frame, text="发送按键", 
-                  command=self.controller.handle_send_key).grid(row=0, column=2)
+                  command=lambda: self.controller.handle_send_key(self.key_entry.get().strip())).grid(row=0, column=2)
         # 新增鼠标指令输入行
         mouse_frame = ttk.Frame(parent_frame)
         mouse_frame.pack(pady=5, fill=tk.X, padx=10)
@@ -85,6 +84,9 @@ class AutomationView(ttk.Frame):
         
         ttk.Button(mouse_frame, text="下单点击", 
                   command=self.controller.handle_click).grid(row=0, column=2)
+        ttk.Button(mouse_frame, text="获取持仓", 
+                  command=self.controller.get_position).grid(row=0, column=3)
+
 
     def select_application(self, event=None):
         """通过输入路径选择应用程序"""

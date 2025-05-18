@@ -73,6 +73,7 @@ class WindowService:
         :param keys: 组合键字符串（用空格连接）或单个键
         """
         key_sequence = [k.strip().upper() for k in keys.split(' ')]
+        print(key_sequence)
         for key in key_sequence:
             if key.startswith('{') and key.endswith('}'):
                 combination = key[1:-1]
@@ -156,7 +157,7 @@ class WindowService:
         for element in descendants:
             if element.control_id() == control_id:
                 return element
-        raise Exception(f"未找到control_id={control_id}的元素")
+        return None
 
     def get_clipboard(self, retries=3, delay=0.1):
         """
@@ -174,7 +175,7 @@ class WindowService:
                 if i == retries - 1:
                     raise Exception(f"获取剪切板数据失败: {str(e)}")
                 time.sleep(delay)
-        raise Exception("剪切板中没有数据")
+        return None
 
     def click_element(self, window_params, control_id):
         """

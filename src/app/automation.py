@@ -8,7 +8,7 @@ class AutomationApp:
     def __init__(self, root):
         self.root = root
         self.logger = Logger()
-        self.controller = AutomationController(self)
+        self.controller = AutomationController()
         # 初始化app视图
         self.view = self._init_view()
         # 初始化http服务
@@ -16,7 +16,7 @@ class AutomationApp:
 
     def _init_view(self):
         """初始化app视图"""
-        view = AutomationView(self.root, self.controller)
+        view = AutomationView(self.root, controller=self.controller)
         view.pack(fill=tk.BOTH, expand=True)
         return view
 

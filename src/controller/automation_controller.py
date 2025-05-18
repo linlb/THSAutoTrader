@@ -1,11 +1,13 @@
 from src.util.logger import Logger
 from src.models.app_model import AppModel
 from src.service.window_service import WindowService
+from src.service.position_service import PositionService
 class AutomationController:
-    def __init__(self, view):
-        self.view = view
+    def __init__(self):
+        self.view = None
         self.model = AppModel()
         self.window_service = WindowService()
+        self.position_service = PositionService()
         self.logger = Logger()
 
     def handle_activate_window(self):
@@ -17,15 +19,14 @@ class AutomationController:
         except Exception as e:
             self.logger.add_log(f"窗口激活失败: {str(e)}")
 
-    def handle_send_key(self):
-        """处理按键发送请求"""
-        try:
-            self.handle_activate_window()
-            key = self.view.key_entry.get().strip()
-            self.window_service.send_key(key)
-            self.logger.add_log(f"已发送按键 {key}")
-        except Exception as e:
-            self.logger.add_log(f"按键发送失败: {str(e)}")
+    def handle_send_key(self, key):
+        """处理按键发送请求
+        Args:
+            key (str): 要发送的按键值
+        """
+        self.handle_activate_window()
+        self.window_service.send_key(key)
+        self.logger.add_log(f"已发送按键 {key}")
 
     def handle_click(self):
         """处理模拟点击请求"""
@@ -34,3 +35,8 @@ class AutomationController:
             self.logger.add_log(f"成功点击control_id=1006的按钮")
         except Exception as e:
             self.logger.add_log(f"点击按钮失败: {str(e)}")
+
+    def get_position(self):
+        """获取持仓信息"""
+        self.handle_activate_window()
+        return self.position_service.get_position()
