@@ -24,6 +24,7 @@ dependencies = [
     "pymacaroons; sys_platform == 'darwin'",
     "pytest; extra == 'test'",
     "pyinstaller (>=6.11.1,<7.0.0)",
+    "tkinterweb (>=4.3.1,<5.0.0)",
 ]
 
 
