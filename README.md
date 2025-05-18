@@ -13,6 +13,7 @@
 ## 打包后文件（可直接运行）
 
 - dist/下单辅助程序.exe
+- 注意：需要下载整个 dist 目录，然后运行下单辅助程序.exe
 
 ## 技术栈
 
@@ -48,13 +49,6 @@ poetry run dev
 poetry run scripts:build
 ```
 
-### 运行打包后的文件
-
-```bash
-./dist/下单辅助程序.exe
-```
-
-注意：需要下载整个 dist 目录，然后运行下单辅助程序.exe
 
 ## 使用指南
 
