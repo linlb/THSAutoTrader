@@ -37,21 +37,28 @@ class PositionService:
     def get_position(self):
         """获取当前持仓"""
         # 先激活程序
-        app_path = self.model.get_trading_app()
+        app_path = self.model.get_target_app()
+        self.window_service.activate_window(app_path)
         try:
-            self.window_service.activate_window(app_path)
+            # 再激活交易程序
+            trading_path = self.model.get_trading_app()
+            self.window_service.activate_window(trading_path)
         except Exception as e:
-            self.logger.add_log(f"激活窗口失败，请检查下单程序是否已启动: {str(e)}")
+            self.logger.add_log(f"激活窗口失败，请检查下单程序是否已启动并且不要进入精简模式: {str(e)}")
             return False
         
         # 获取目标窗口
         window_result = self.window_service.get_target_window({'title': '网上股票交易系统5.0'})
-        print(window_result)
+
         if window_result is None:
-            raise Exception("未找到目标窗口")
+            raise Exception("未找到交易窗口")
 
         # 快捷键操作
-        self.window_service.send_key('F4 {CTRL+C}')
+        self.window_service.send_key('F4')
+        # 点击内容区域
+        self.window_service.click_element({'title': '网上股票交易系统5.0'}, 1047)
+        
+        self.window_service.send_key('{CTRL+C}')
         # 查找验证码图片元素
         image_result = self.window_service.find_element_in_window(window_result, 2405)
         #image_result如果为none，则直接获取剪切板数据

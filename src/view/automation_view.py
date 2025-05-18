@@ -82,8 +82,9 @@ class AutomationView(ttk.Frame):
         # self.mouse_entry = ttk.Entry(mouse_frame, width=30)
         # self.mouse_entry.grid(row=0, column=1, padx=5)
         
-        ttk.Button(mouse_frame, text="下单点击", 
-                  command=self.controller.handle_click).grid(row=0, column=2)
+        # ttk.Button(mouse_frame, text="下单点击", 
+        #           command=self.controller.handle_click).grid(row=0, column=2)
+        
         ttk.Button(mouse_frame, text="获取持仓", 
                   command=self.controller.get_position).grid(row=0, column=3)
 

@@ -34,7 +34,9 @@ class AppModel:
             json.dump(self._config, f) 
     
     def get_cache_dir(self):
+        # 获取当前脚本所在目录
         return "cache/"
     
     def get_tesseract_dir(self):
+        """获取tesseract-ocr目录"""
         return "Tesseract-OCR/"

@@ -39,7 +39,8 @@ class AutomationApp:
         flask_server.run_async()
         self.log(f"HTTP服务已启动")
         self.log(f"健康检查端点：http://{flask_server.host}:{flask_server.port}/health")
-        self.log(f"下单接口：http://{flask_server.host}:{flask_server.port}/xiadan?key=600000+ENTER+21+ENTER")
+        self.log(f"下单接口：http://{flask_server.host}:{flask_server.port}/xiadan?code=600000&status=1")
+        self.log(f"获取持仓接口：http://{flask_server.host}:{flask_server.port}/position")
         return flask_server
 
     def log(self, message):

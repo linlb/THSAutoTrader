@@ -39,7 +39,5 @@ class AutomationController:
 
     def get_position(self):
         """获取持仓信息"""
-        root_dir = self.model.get_cache_dir()
-        print(root_dir)
         self.handle_activate_window()
         return self.position_service.get_position()
