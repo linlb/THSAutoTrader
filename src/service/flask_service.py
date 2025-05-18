@@ -151,17 +151,29 @@ class FlaskApp:
         # 下单点击
         @self.app.route('/xiadan', methods=['GET'])
         def xiadan():
-            # 从url上获取参数，key
-            key = request.args.get('key')
+            # 从url上获取参数，code
+            code = request.args.get('code')
+            status = request.args.get('status')
             try:
+                if code is None:
+                    return jsonify({"status": "error", "message": "code不能为空"})
+                if status is None:
+                    return jsonify({"status": "error", "message": "status不能为空,1:闪电买入,2:闪电卖出"})
                 # 先激活窗口
                 self.controller.handle_activate_window()
                 time.sleep(0.1)
-                self.window_service.send_key(key)
+                # 发送代码
+                keyStr = code + ' ENTER '
+                if status == '1':
+                    keyStr = keyStr + '21 ENTER'
+                elif status == '2':
+                    keyStr = keyStr + '23 ENTER'
+
+                self.window_service.send_key(keyStr)
                 time.sleep(0.1)
                 # 下单点击
                 self.window_service.click_element({'class_name': '#32770', 'title':''}, 1006)
-                return jsonify({"status": "success", "message": f"已发送按键 {key}"})
+                return jsonify({"status": "success", "message": f"已发送按键 {keyStr}"})
             except Exception as e:
                 self.logger.add_log(f"按键发送失败: {str(e)}")
                 return jsonify({"status": "error", "message": f"下单异常: {str(e)}"})

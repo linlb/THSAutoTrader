@@ -177,12 +177,25 @@ class WindowService:
                 time.sleep(delay)
         return None
 
-    def click_element(self, window_params, control_id):
+    def click_element(self, window_params, control_id, retries=3, delay=0.5):
         """
         点击元素
         :param window_params: 窗口查找参数
         :param control_id: 元素的control_id
+        :param retries: 重试次数，默认3次
+        :param delay: 每次重试的延迟时间，默认0.5秒
         """
-        window = self.get_target_window(window_params)
-        element = self.find_element_in_window(window, control_id)
-        element.click_input()
+        for i in range(retries):
+            try:
+                window = self.get_target_window(window_params)
+                if window is None:
+                    raise Exception("未找到目标窗口")
+                element = self.find_element_in_window(window, control_id)
+                if element is None:
+                    raise Exception("未找到目标元素")
+                element.click_input()
+                return
+            except Exception as e:
+                if i == retries - 1:
+                    raise Exception(f"点击元素失败: {str(e)}")
+                time.sleep(delay)

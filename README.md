@@ -42,8 +42,6 @@ poetry install
 poetry run dev
 ```
 
-```
-
 ### 项目打包
 
 ```bash
@@ -53,8 +51,10 @@ poetry run scripts:build
 ### 运行打包后的文件
 
 ```bash
-./dist/main
+./dist/下单辅助程序.exe
 ```
+
+注意：需要下载整个 dist 目录，然后运行下单辅助程序.exe
 
 ## 使用指南
 
@@ -69,16 +69,74 @@ poetry run scripts:build
 
 ### API 调用示例
 
-#### 闪电买入
+#### 下单接口
 
 ```bash
-http://localhost:5000/xiadan?key=600000+ENTER++21+ENTER
+# 买入操作
+http://localhost:5000/xiadan?code=600000&status=1
+
+# 卖出操作
+http://localhost:5000/xiadan?code=600000&status=2
 ```
 
-#### 闪电卖出
+参数说明：
+
+- `code`: 股票代码，如 600000（浦发银行）
+- `status`: 交易类型，1 表示买入，2 表示卖出
+
+#### 获取持仓接口
 
 ```bash
-http://localhost:5000/xiadan?key=600000+ENTER++23+ENTER
+http://localhost:5000/position
+```
+
+注意:
+
+- 需要保持同花顺交易的登录状态
+- 交易界面以独立窗口运行（不要开精简模式，否则无法找到窗口）
+- 不稳定（包括可能验证码识别错误），建议做错误重试
+
+返回格式：
+
+```json
+{
+  "data": [
+    {
+      "": "",
+      "交易市场": "深圳Ａ股",
+      "仓位占比(%)": "39.31",
+      "冻结数量": "0",
+      "可用余额": "3300",
+      "市价": "16.230",
+      "市值": "53559.000",
+      "序号": "1",
+      "当日买入": "0",
+      "当日卖出": "0",
+      "当日盈亏": "2178.00",
+      "当日盈亏比(%)": "4.24",
+      "成本价": "17.796",
+      "盈亏": "-5166.790",
+      "盈亏比例(%)": "-8.800",
+      "股票余额": "3300",
+      "证券代码": "002229",
+      "证券名称": "鸿博股份"
+    }
+  ],
+  "status": "success"
+}
+```
+
+#### 模拟键盘按键接口
+
+```bash
+# 输入股票代码并回车
+http://localhost:5000/send_key?key=600000+ENTER
+
+# 闪电买入
+http://localhost:5000/send_key?key=21+ENTER
+
+# 闪电卖出
+http://localhost:5000/send_key?key=F12
 ```
 
 > 说明：
@@ -88,23 +146,33 @@ http://localhost:5000/xiadan?key=600000+ENTER++23+ENTER
 > - `21` 为同花顺键盘精灵的闪电买入快捷键
 > - `23` 为闪电卖出快捷键
 > - 支持其他键盘精灵的输入操作
+> - 常用快捷键：
+>   - F1: 帮助
+>   - F3: 上证指数
+>   - F4: 深证成指
+>   - F5: 分时/K 线切换
+>   - F6: 自选股
+>   - F12: 交易
 
-## 项目结构
+#### 获取当前股票信息接口
 
+```bash
+http://localhost:5000/stock_info?code=600000
 ```
-src/
-    controller/          # 控制器层
-    model/               # 数据模型
-    service/             # 服务层
-        window_service.py    # 窗口控制服务
-        deepseek_service.py  # 大模型调用
-        trading_service.py   # 交易服务
-        flash_service.py     # HTTP 服务管理
-    view/                # 视图层
-        automation_view.py   # 应用界面
-    main.py              # 程序入口
-    config.py            # 配置文件
-    utils.py             # 工具函数
+
+返回格式：
+
+```json
+{
+  "code": 200,
+  "data": {
+    "stock_code": "600000",
+    "stock_name": "浦发银行",
+    "current_price": 7.5,
+    "change": "+0.15",
+    "change_percent": "+2.04%"
+  }
+}
 ```
 
 ## 注意事项
