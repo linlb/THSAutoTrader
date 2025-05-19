@@ -41,6 +41,9 @@ build = "scripts:build"
 [tool.poetry.group.dev.dependencies]
 hupper = "^1.12.1"
 
+[tool.poetry]
+include = ["html/**/*", "static/**/*"]
+
 [tool.pyinstaller]
 console = false
 entry-point = "main.py"
