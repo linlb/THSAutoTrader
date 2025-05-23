@@ -108,6 +108,23 @@ class FlaskApp:
         def health_check():
             return jsonify({"status": "success", "timestamp": time.time()})
         
+        # 获取资金余额
+        @self.app.route('/balance', methods=['GET'])
+        def get_balance():
+            try:
+                # 调用controller获取资金余额
+                balance = self.controller.get_balance()
+                return jsonify({
+                    "status": "success",
+                    "data": balance
+                })
+            except Exception as e:
+                self.logger.add_log(f"获取资金余额失败: {str(e)}")
+                return jsonify({
+                    "status": "error",
+                    "message": f"获取资金余额失败: {str(e)}"
+                }), 500
+        
         # 获取持仓信息
         @self.app.route('/position', methods=['GET'])
         def get_position():

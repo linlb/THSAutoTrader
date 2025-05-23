@@ -87,7 +87,10 @@ class AutomationView(ttk.Frame):
         
         ttk.Button(mouse_frame, text="获取持仓", 
                   command=self.controller.get_position).grid(row=0, column=3)
-
+        
+        # 新增获取资金余额按钮
+        ttk.Button(mouse_frame, text="获取资金", 
+                  command=self.controller.get_balance).grid(row=0, column=4)
 
     def select_application(self, event=None):
         """通过输入路径选择应用程序"""

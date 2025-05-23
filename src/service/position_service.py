@@ -161,3 +161,56 @@ class PositionService:
             result.append(item)
         
         return result 
+    
+    def get_balance(self):
+        """获取资金余额"""
+        # 先激活程序
+        app_path = self.model.get_target_app()
+        self.window_service.activate_window(app_path)
+        try:
+            # 再激活交易程序
+            trading_path = self.model.get_trading_app()
+            self.window_service.activate_window(trading_path)
+        except Exception as e:
+            self.logger.add_log(f"激活窗口失败，请检查下单程序是否已启动并且不要进入精简模式: {str(e)}")
+            return False
+        
+        # 获取目标窗口
+        window_result = self.window_service.get_target_window({'title': '网上股票交易系统5.0'})
+
+        if window_result is None:
+            raise Exception("未找到交易窗口")
+
+        # 快捷键操作
+        self.window_service.send_key('F4')
+        
+        # 定义需要获取的字段及其对应的control_id
+        balance_fields = {
+            '资金余额': 1012,
+            '冻结金额': 1013,
+            '可用金额': 1016,
+            '可取金额': 1017,
+            '股票市值': 1014,
+            '总资产': 1015,
+            '持仓盈亏': 1027,
+            '当日盈亏': 1026,
+            '当日盈亏比': 1029
+        }
+        
+        # 批量获取所有control_id对应的元素
+        control_ids = list(balance_fields.values())
+        elements = self.window_service.find_element_in_window(window_result, control_ids)
+        
+        # 构建结果字典
+        result = {}
+        for field_name, control_id in balance_fields.items():
+            # 查找对应control_id的元素
+            element = next((e for e in elements if e.control_id() == control_id), None)
+            if element:
+                result[field_name] = element.window_text()
+            else:
+                result[field_name] = None
+                self.logger.add_log(f"未找到 {field_name} 对应的控件")
+        
+        self.logger.add_log(f"资金余额: {result}")
+        return result
