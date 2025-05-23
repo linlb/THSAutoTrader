@@ -150,14 +150,30 @@ class WindowService:
         """
         在指定窗口中查找控件元素
         :param window: 目标窗口
-        :param control_id: 元素的control_id
-        :return: 找到的元素
+        :param control_id: 元素的control_id（支持单个id或id列表）
+        :return: 找到的元素（单个id返回元素，多个id返回元素列表）
         """
         descendants = window.descendants()
-        for element in descendants:
-            if element.control_id() == control_id:
-                return element
-        return None
+        
+        # 如果传入的是单个id，保持原有逻辑
+        if isinstance(control_id, (int, str)):
+            for element in descendants:
+                if element.control_id() == control_id:
+                    return element
+            return None
+        
+        # 如果传入的是多个id，批量查找
+        elif isinstance(control_id, (list, tuple)):
+            result = []
+            control_id_set = set(control_id)  # 转换为集合提高查找效率
+            for element in descendants:
+                if element.control_id() in control_id_set:
+                    result.append(element)
+                    if len(result) == len(control_id_set):  # 找到所有目标后提前返回
+                        break
+            return result
+        
+        raise TypeError("control_id参数类型错误，应为int/str或list/tuple")
 
     def get_clipboard(self, retries=3, delay=0.1):
         """

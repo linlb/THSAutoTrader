@@ -41,3 +41,9 @@ class AutomationController:
         """获取持仓信息"""
         self.handle_activate_window()
         return self.position_service.get_position()
+    
+    def get_balance(self):
+        """获取资金余额"""
+        self.handle_activate_window()
+        return self.position_service.get_balance()
+
