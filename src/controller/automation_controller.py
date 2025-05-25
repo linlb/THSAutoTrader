@@ -17,8 +17,10 @@ class AutomationController:
             app_path = self.model.get_target_app()
             hwnd = self.window_service.activate_window(app_path)
             self.logger.add_log(f"窗口激活成功，窗口句柄：{hwnd}")
+            return hwnd
         except Exception as e:
             self.logger.add_log(f"窗口激活失败: {str(e)}")
+            raise e
 
     def handle_send_key(self, key):
         """处理按键发送请求

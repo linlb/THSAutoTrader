@@ -31,7 +31,6 @@ class WindowService:
                         hwnd_found = hwnd
                         if win32gui.IsIconic(hwnd):
                             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-                        print('showWindow')
                         if not win32gui.IsWindow(hwnd):
                             raise Exception("无效的窗口句柄")
                         if not win32gui.IsWindowVisible(hwnd):
