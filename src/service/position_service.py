@@ -2,6 +2,7 @@ import os
 from src.util.logger import Logger
 from src.service.window_service import WindowService
 from src.models.app_model import AppModel
+import time
 
 class PositionService:
     def __init__(self):
@@ -56,8 +57,11 @@ class PositionService:
         #点击下窗口(达到聚焦效果，否则快捷键会失效)
         window_result.click_input()
 
+        time.sleep(0.5)
         # 快捷键操作
         self.window_service.send_key('F4')
+
+
         # 点击内容区域
         self.window_service.click_element({'title': '网上股票交易系统5.0'}, 1047)
         
@@ -185,6 +189,7 @@ class PositionService:
         
         #点击下窗口(达到聚焦效果，否则快捷键会失效)
         window_result.click_input()
+        time.sleep(0.5)
 
         # 快捷键操作
         self.window_service.send_key('F4')
