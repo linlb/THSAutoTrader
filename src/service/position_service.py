@@ -45,7 +45,7 @@ class PositionService:
             self.window_service.activate_window(trading_path)
         except Exception as e:
             self.logger.add_log(f"激活窗口失败，请检查下单程序是否已启动并且不要进入精简模式: {str(e)}")
-            return False
+            raise Exception(f"激活窗口失败，请检查下单程序是否已启动并且不要进入精简模式: {str(e)}")
         
         # 获取目标窗口
         window_result = self.window_service.get_target_window({'title': '网上股票交易系统5.0'})
@@ -65,7 +65,6 @@ class PositionService:
         # 查找验证码图片元素
         image_result = self.window_service.find_element_in_window(window_result, 2405)
         #image_result如果为none，则直接获取剪切板数据
-        print(image_result)
         if image_result is None:
             # 如果没有验证码弹窗，可以直接获取剪切板数据
             data = self._get_clipboard_data()
@@ -100,7 +99,7 @@ class PositionService:
                     self.logger.add_log(f"验证码输入错误")
                     # 点击取消按钮
                     self._click_button(window_result, 2)
-                    return False
+                    raise Exception("验证码输入错误")
         return False
 
     def _clean_digits(self, text: str) -> str:
@@ -176,7 +175,7 @@ class PositionService:
             self.window_service.activate_window(trading_path)
         except Exception as e:
             self.logger.add_log(f"激活窗口失败，请检查下单程序是否已启动并且不要进入精简模式: {str(e)}")
-            return False
+            raise Exception(f"激活窗口失败，请检查下单程序是否已启动并且不要进入精简模式: {str(e)}")
         
         # 获取目标窗口
         window_result = self.window_service.get_target_window({'title': '网上股票交易系统5.0'})
