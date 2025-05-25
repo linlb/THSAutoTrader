@@ -199,3 +199,6 @@ http://localhost:5000/balance
 1. 请确保同花顺客户端已正确配置快捷下单
 2. 交易前请仔细核对同花顺交易设置
 3. 建议在模拟交易环境中充分测试后再进行实盘操作
+4. 交易系统要单独一个窗口打开，不要精简模式
+
+![交易系统窗口示例](https://github.com/user-attachments/assets/fe5ed4de-b895-459f-a927-55d49f1e17ec)
