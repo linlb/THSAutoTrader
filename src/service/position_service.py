@@ -37,8 +37,8 @@ class PositionService:
     def get_position(self):
         """获取当前持仓"""
         # 先激活程序
-        app_path = self.model.get_target_app()
-        self.window_service.activate_window(app_path)
+        # app_path = self.model.get_target_app()
+        # self.window_service.activate_window(app_path)
         try:
             # 再激活交易程序
             trading_path = self.model.get_trading_app()
@@ -52,6 +52,9 @@ class PositionService:
 
         if window_result is None:
             raise Exception("未找到交易窗口")
+
+        #点击下窗口(达到聚焦效果，否则快捷键会失效)
+        window_result.click_input()
 
         # 快捷键操作
         self.window_service.send_key('F4')
@@ -165,8 +168,8 @@ class PositionService:
     def get_balance(self):
         """获取资金余额"""
         # 先激活程序
-        app_path = self.model.get_target_app()
-        self.window_service.activate_window(app_path)
+        # app_path = self.model.get_target_app()
+        # self.window_service.activate_window(app_path)
         try:
             # 再激活交易程序
             trading_path = self.model.get_trading_app()
@@ -180,6 +183,9 @@ class PositionService:
 
         if window_result is None:
             raise Exception("未找到交易窗口")
+        
+        #点击下窗口(达到聚焦效果，否则快捷键会失效)
+        window_result.click_input()
 
         # 快捷键操作
         self.window_service.send_key('F4')

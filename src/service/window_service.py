@@ -31,7 +31,21 @@ class WindowService:
                         hwnd_found = hwnd
                         if win32gui.IsIconic(hwnd):
                             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-                        win32gui.SetForegroundWindow(hwnd)
+                        print('showWindow')
+                        if not win32gui.IsWindow(hwnd):
+                            raise Exception("无效的窗口句柄")
+                        if not win32gui.IsWindowVisible(hwnd):
+                            raise Exception("窗口不可见或已关闭")
+                        try:
+                            win32gui.SetForegroundWindow(hwnd)
+                        except Exception as e:
+                            self.logger.add_log(f"win32gui.SetForegroundWindow 失败，尝试使用 pywinauto.set_focus()，句柄：{hwnd}，错误：{str(e)}")
+                            try:
+                                from pywinauto import Application
+                                app = Application(backend='uia').connect(handle=hwnd)
+                                app.window(handle=hwnd).set_focus()
+                            except Exception as e2:
+                                raise Exception(f"设置前台窗口失败，句柄：{hwnd}，错误1：{str(e)}，错误2：{str(e2)}")
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
             return True
@@ -41,6 +55,67 @@ class WindowService:
         if hwnd_found:
             return hwnd_found
         raise Exception("未找到匹配窗口")
+
+    def activate_window_by_pid(self, pid, retries=3, delay=0.5):
+        """
+        根据进程ID激活窗口
+        :param pid: 目标进程ID
+        :param retries: 重试次数，默认3次
+        :param delay: 每次重试的延迟时间，默认0.5秒
+        :return: 成功返回窗口句柄，失败抛出异常
+        """
+        hwnd_found = None
+        
+        def callback(hwnd, extra):
+            nonlocal hwnd_found
+            if win32gui.IsWindowVisible(hwnd):
+                _, window_pid = win32process.GetWindowThreadProcessId(hwnd)
+                if window_pid == pid:
+                    hwnd_found = hwnd
+                    if win32gui.IsIconic(hwnd):
+                        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                    if not win32gui.IsWindow(hwnd):
+                        raise Exception("无效的窗口句柄")
+                    if not win32gui.IsWindowVisible(hwnd):
+                        raise Exception("窗口不可见或已关闭")
+                    try:
+                        win32gui.SetForegroundWindow(hwnd)
+                    except Exception as e:
+                        self.logger.add_log(f"win32gui.SetForegroundWindow 失败，尝试使用 pywinauto.set_focus()，句柄：{hwnd}，错误：{str(e)}")
+                        try:
+                            from pywinauto import Application
+                            app = Application(backend='uia').connect(handle=hwnd)
+                            app.window(handle=hwnd).set_focus()
+                        except Exception as e2:
+                            raise Exception(f"设置前台窗口失败，句柄：{hwnd}，错误1：{str(e)}，错误2：{str(e2)}")
+                    return False  # 找到后立即停止枚举
+            return True
+
+        for attempt in range(retries):
+            win32gui.EnumWindows(callback, None)
+            
+            if hwnd_found:
+                # 验证窗口是否真的激活
+                active_hwnd = win32gui.GetForegroundWindow()
+                if active_hwnd == hwnd_found:
+                    return hwnd_found
+                else:
+                    # 如果激活失败，尝试再次设置
+                    try:
+                        win32gui.SetForegroundWindow(hwnd_found)
+                    except Exception as e:
+                        self.logger.add_log(f"win32gui.SetForegroundWindow 失败，尝试使用 pywinauto.set_focus()，句柄：{hwnd_found}，错误：{str(e)}")
+                        try:
+                            from pywinauto import Application
+                            app = Application(backend='uia').connect(handle=hwnd_found)
+                            app.window(handle=hwnd_found).set_focus()
+                        except Exception as e2:
+                            raise Exception(f"设置前台窗口失败，句柄：{hwnd_found}，错误1：{str(e)}，错误2：{str(e2)}")
+                    time.sleep(delay)
+            else:
+                time.sleep(delay)
+
+        raise Exception(f"未找到匹配窗口，进程ID：{pid}，重试次数：{retries}")
 
     def _process_single_key(self, key: str):
         """
@@ -73,7 +148,6 @@ class WindowService:
         :param keys: 组合键字符串（用空格连接）或单个键
         """
         key_sequence = [k.strip().upper() for k in keys.split(' ')]
-        print(key_sequence)
         for key in key_sequence:
             if key.startswith('{') and key.endswith('}'):
                 combination = key[1:-1]
@@ -134,17 +208,26 @@ class WindowService:
         win32api.keybd_event(vk_codes[-1], 0, win32con.KEYEVENTF_KEYUP, 0)
         self._release_modifier_keys(vk_codes, delay)
 
-    def get_target_window(self, window_params):
+    def get_target_window(self, window_params, retries=3, delay=0.5):
         """
         根据参数获取目标窗口
         :param window_params: 窗口查找参数（字典）
+        :param retries: 重试次数，默认3次
+        :param delay: 每次重试的延迟时间，默认0.5秒
         :return: 找到的窗口
         """
-        dialogs = Desktop(backend='uia').windows(**window_params)
-        if not dialogs:
-            return None
-        self.logger.add_log(f"找到的对话框数量: {len(dialogs)}")
-        return dialogs[0]
+        for i in range(retries):
+            try:
+                dialogs = Desktop(backend='uia').windows(**window_params)
+                if dialogs:
+                    self.logger.add_log(f"找到的对话框数量: {len(dialogs)}")
+                    return dialogs[0]
+                time.sleep(delay)
+            except Exception as e:
+                if i == retries - 1:
+                    raise Exception(f"查找窗口失败: {str(e)}")
+                time.sleep(delay)
+        return None
 
     def find_element_in_window(self, window, control_id):
         """
