@@ -202,3 +202,11 @@ http://localhost:5000/balance
 4. 交易系统要单独一个窗口打开，不要精简模式
 
 ![交易系统窗口示例](https://github.com/user-attachments/assets/fe5ed4de-b895-459f-a927-55d49f1e17ec)
+
+## TODO
+```
+# 撤单
+# 下单支持传递数量
+# 持仓获取先进行刷新下数据（盘中数据有时没自动刷新）
+# 本地数据存储，提高容错率
+```
