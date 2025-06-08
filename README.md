@@ -50,6 +50,22 @@ poetry run dev
 poetry run scripts:build
 ```
 
+### 前端项目（Vue）
+
+- 目录：/html/front
+- node >= 18
+
+```
+// 依赖安装
+npm install
+
+// 运行
+npm run dev
+
+// 打包
+npm run build
+```
+
 ## 使用指南
 
 ### 前置准备
