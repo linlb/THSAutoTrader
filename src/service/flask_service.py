@@ -197,6 +197,20 @@ class FlaskApp:
             except Exception as e:
                 self.logger.add_log(f"按键发送失败: {str(e)}")
                 return jsonify({"status": "error", "message": f"下单异常: {str(e)}"})
+               
+        # 撤销所有委托
+        @self.app.route('/cancel_all_orders', methods=['GET'])
+        def cancel_all_orders():
+            try:
+                result = self.controller.handle_cancel_all_orders()
+                if result:
+                    return jsonify({"status": "success", "message": "批量撤单操作已执行"})
+                else:
+                    return jsonify({"status": "error", "message": "批量撤单失败"})
+            except Exception as e:
+                self.logger.add_log(f"批量撤单失败: {str(e)}")
+                return jsonify({"status": "error", "message": f"批量撤单失败: {str(e)}"})
+
         
         # 通用静态资源路由
         @self.app.route('/<path:filename>')

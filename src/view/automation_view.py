@@ -91,7 +91,17 @@ class AutomationView(ttk.Frame):
         # 新增获取资金余额按钮
         ttk.Button(mouse_frame, text="获取资金", 
                   command=self.controller.get_balance).grid(row=0, column=4)
-
+        
+        # 添加撤单功能框架
+        cancel_frame = ttk.Frame(parent_frame)
+        cancel_frame.pack(pady=5, fill=tk.X, padx=10)
+        
+        ttk.Label(cancel_frame, text="撤单操作:").grid(row=0, column=0, sticky='w')
+          
+        # 批量撤单按钮
+        ttk.Button(cancel_frame, text="撤销所有", 
+                  command=self.controller.handle_cancel_all_orders).grid(row=0, column=3, padx=5)
+        
     def select_application(self, event=None):
         """通过输入路径选择应用程序"""
         self.controller.model.set_target_app(self.app_entry.get().strip())
@@ -126,6 +136,14 @@ class AutomationView(ttk.Frame):
     def get_key_command(self):
         """获取按键指令输入"""
         return self.key_entry.get().strip()
+    
+    def _handle_cancel_order(self):
+        """处理撤单操作"""
+        order_id = self.order_id_entry.get().strip()
+        if order_id:
+            self.controller.handle_cancel_order(order_id)
+        else:
+            self.controller.handle_cancel_order()
 
     def _create_webview(self, parent_frame):
         """创建WebView组件"""

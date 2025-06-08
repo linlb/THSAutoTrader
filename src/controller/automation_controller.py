@@ -2,6 +2,7 @@ from src.util.logger import Logger
 from src.models.app_model import AppModel
 from src.service.window_service import WindowService
 from src.service.position_service import PositionService
+from src.service.trading_service import TradingService
 import os
 class AutomationController:
     def __init__(self):
@@ -9,6 +10,7 @@ class AutomationController:
         self.model = AppModel()
         self.window_service = WindowService()
         self.position_service = PositionService()
+        self.trading_service = TradingService()
         self.logger = Logger()
 
     def handle_activate_window(self):
@@ -48,4 +50,30 @@ class AutomationController:
         """获取资金余额"""
         self.handle_activate_window()
         return self.position_service.get_balance()
-
+    
+    def handle_cancel_order(self, order_id=None):
+        """处理撤单请求
+        Args:
+            order_id (str, optional): 委托单号，如果不提供则撤销当前选中的委托
+        """
+        try:
+            return self.trading_service.cancel_order(order_id)
+        except Exception as e:
+            self.logger.add_log(f"撤单请求失败: {str(e)}")
+            raise e
+    
+    def handle_cancel_all_orders(self):
+        """处理撤销所有委托请求"""
+        try:
+            return self.trading_service.cancel_all_orders()
+        except Exception as e:
+            self.logger.add_log(f"批量撤单请求失败: {str(e)}")
+            raise e
+    
+    def get_pending_orders(self):
+        """获取当前委托单信息"""
+        try:
+            return self.trading_service.get_pending_orders()
+        except Exception as e:
+            self.logger.add_log(f"获取委托单请求失败: {str(e)}")
+            raise e
