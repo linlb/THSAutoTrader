@@ -1,14 +1,9 @@
 <template>
   <Card 
     title="交易策略"
-    :show-toggle="false"
+    :default-collapsed="defaultCollapsed"
   >
     <!-- 交易策略配置区域 -->
-    <div class="trading-strategy-section">
-      <div class="section-header">
-        <h5>策略配置</h5>
-      </div>
-      
       <div class="strategy-form">
         <div class="row">
           <div class="col-md-6">
@@ -84,7 +79,7 @@
           </button>
         </div>
       </div>
-    </div>
+    
   </Card>
 </template>
 
@@ -171,15 +166,6 @@ export default {
 /* 交易策略组件样式 */
 .trading-strategy-section {
   margin-bottom: 2rem;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
 }
 
 .section-header h5 {
