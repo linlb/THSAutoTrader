@@ -52,11 +52,11 @@ poetry run scripts:build
 
 ### 前端项目（Vue）
 
-- 目录：/html/front
+- 目录：/front
 - node >= 18
 
 ```
-// 依赖安装
+// 依赖安装(进入front目录下执行命令)
 npm install
 
 // 运行
@@ -93,6 +93,12 @@ http://localhost:5000/xiadan?code=600000&status=2
 
 - `code`: 股票代码，如 600000（浦发银行）
 - `status`: 交易类型，1 表示买入，2 表示卖出
+
+#### 撤单接口（全撤）
+
+```bash
+http://localhost:5000/cancel_all_orders
+```
 
 #### 获取持仓接口
 

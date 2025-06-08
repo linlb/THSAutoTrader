@@ -5,15 +5,9 @@
       <div class="col-md-6">
         <WindowControl 
           :loading="loading" 
+          :result="result"
           @api-call="callApi"
         />
-        <div class="mt-3">
-          <div class="card">
-            <div class="card-body">
-              <ResultDisplay :result="result" />
-            </div>
-          </div>
-        </div>
       </div>
       <div class="col-md-6">
         <TradingService 
@@ -30,14 +24,12 @@ import { ref } from 'vue'
 import axios from 'axios'
 import WindowControl from './components/WindowControl.vue'
 import TradingService from './components/TradingService.vue'
-import ResultDisplay from './components/ResultDisplay.vue'
 
 export default {
   name: 'App',
   components: {
     WindowControl,
-    TradingService,
-    ResultDisplay
+    TradingService
   },
   setup() {
     const result = ref('')
