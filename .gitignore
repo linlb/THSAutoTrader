@@ -7,3 +7,4 @@ dist/*/*.json
 *.log
 *.pyc
 .cursorrules
+node_modules/
