@@ -1,10 +1,11 @@
 <template>
-  <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" @click="toggleCollapse">
-      <span>Window 控制调试</span>
-      <span class="toggle-text">{{ collapsed ? '展开' : '收起' }}</span>
-    </div>
-    <div v-if="!collapsed" class="card-body d-flex flex-column gap-2">
+  <Card 
+    ref="card"
+    title="Window 控制调试" 
+    :header-clickable="true"
+    @collapse-changed="onCollapseChanged"
+  >
+    <div class="d-flex flex-column gap-2">
       <div 
         v-for="api in apis" 
         :key="api.url" 
@@ -39,24 +40,26 @@
         </div>
       </div>
     </div>
-  </div>
+  </Card>
 </template>
 
 <script>
 import { ref, reactive } from 'vue'
+import Card from '../common/Card.vue'
 
 export default {
   name: 'WindowControl',
+  components: {
+    Card
+  },
   props: {
     result: {
       type: String,
       default: ''
     }
   },
-  emits: ['api-call'],
+  emits: ['api-call', 'collapse-changed'],
   setup(props, { emit }) {
-    const collapsed = ref(false)
-    
     const apis = ref([
       {
         label: '获取持仓',
@@ -93,16 +96,15 @@ export default {
       }
     }
 
-    const toggleCollapse = () => {
-      collapsed.value = !collapsed.value
+    const onCollapseChanged = (collapsed) => {
+      emit('collapse-changed', collapsed)
     }
 
     return {
-      collapsed,
       apis,
       loadingStates,
       handleApiCall,
-      toggleCollapse
+      onCollapseChanged
     }
   }
 }
@@ -111,19 +113,5 @@ export default {
 <style scoped>
 .gap-2 {
   gap: 0.5rem;
-}
-
-.card-header:hover {
-  background-color: #f8f9fa;
-}
-
-.toggle-text {
-  font-size: 0.875rem;
-  color: #6c757d;
-  font-weight: 500;
-}
-
-.toggle-text:hover {
-  color: #495057;
 }
 </style> 

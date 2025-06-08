@@ -1,0 +1,185 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #4caf50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+.log-container {
+  padding: 15px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.hold-stocks {
+  padding: 10px;
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-height: 50px;
+}
+
+#hold-stocks-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  background-color: #f8f8f8;
+}
+
+#hold-stocks-table th,
+#hold-stocks-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+#hold-stocks-table th {
+  background-color: #f5f5f5;
+}
+
+.stock-pool {
+  margin-bottom: 20px;
+  max-height: 550px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  background-color: #f8f8f8;
+}
+
+#stock-pool-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+#stock-pool-table th,
+#stock-pool-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+#stock-pool-table th {
+  background-color: #f5f5f5;
+}
+
+.add-stock-form {
+  display: flex;
+  gap: 10px;
+}
+
+.add-stock-form input {
+  flex: 1;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.add-stock-form button {
+  padding: 6px 12px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-stock-form button:hover {
+  background-color: #45a049;
+}
+
+.action-buttons button {
+  padding: 4px 8px;
+  margin-right: 5px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.edit-btn {
+  background-color: #2196f3;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+/* 左右两栏布局 */
+.main-container {
+  display: flex;
+  gap: 20px;
+}
+
+.left-panel {
+  flex: 2;
+  padding-right: 10px;
+  max-width: 65%;
+}
+
+.right-panel {
+  flex: 1;
+  padding-left: 10px;
+}
+
+.log-container {
+  height: 300px;
+  margin-top: 20px;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* 确保pre标签内容自动换行 */
+#log-output {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  margin: 0;
+} 

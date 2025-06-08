@@ -15,6 +15,12 @@
           @execute-trade="executeTrade"
         />
       </div>
+      <div class="col-md-6">
+        <StockPool 
+          :loading="loading" 
+          @stock-pool-updated="updateStockPool"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -24,12 +30,14 @@ import { ref } from 'vue'
 import axios from 'axios'
 import WindowControl from './components/WindowControl.vue'
 import TradingService from './components/TradingService.vue'
+import StockPool from './components/StockPool.vue'
 
 export default {
   name: 'App',
   components: {
     WindowControl,
-    TradingService
+    TradingService,
+    StockPool
   },
   setup() {
     const result = ref('')
