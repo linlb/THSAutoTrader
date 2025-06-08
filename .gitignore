@@ -8,3 +8,4 @@ dist/*/*.json
 *.pyc
 .cursorrules
 node_modules/
+html-bak/

@@ -1,14 +1,8 @@
 <template>
   <div class="card">
-    <div class="card-header">交易服务</div>
+    <div class="card-header">交易策略</div>
     <div class="card-body">
-      <button 
-        class="btn btn-success"
-        @click="handleExecuteTrade"
-        :disabled="loading"
-      >
-        {{ loading ? '执行中...' : '执行交易操作' }}
-      </button>
+      
     </div>
   </div>
 </template>
@@ -20,16 +14,6 @@ export default {
     loading: {
       type: Boolean,
       default: false
-    }
-  },
-  emits: ['execute-trade'],
-  setup(props, { emit }) {
-    const handleExecuteTrade = () => {
-      emit('execute-trade')
-    }
-
-    return {
-      handleExecuteTrade
     }
   }
 }

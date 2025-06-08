@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" @click="toggleCollapse">
-      <span>Window 控制</span>
+      <span>Window 控制调试</span>
       <span class="toggle-text">{{ collapsed ? '展开' : '收起' }}</span>
     </div>
     <div v-if="!collapsed" class="card-body d-flex flex-column gap-2">
@@ -15,7 +15,6 @@
           type="text"
           class="form-control flex-shrink-1"
           :value="api.url"
-          disabled
         />
         <button
           class="btn btn-primary flex-shrink-0"
