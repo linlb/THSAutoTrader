@@ -72,7 +72,7 @@ npm run build
 ## API Endpoints
 
 The Flask service provides these main endpoints:
-- `GET /xiadan?code=STOCK_CODE&status=1|2&amount=OPTIONAL` - Buy/sell orders
+- `GET /xiadan?code=STOCK_CODE&status=1|2&amount=OPTIONAL&price=OPTIONAL` - Buy/sell orders
 - `GET /position` - Get current positions
 - `GET /balance` - Get account balance
 - `GET /cancel_all_orders` - Cancel all pending orders

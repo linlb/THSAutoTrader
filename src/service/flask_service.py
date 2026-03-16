@@ -5,6 +5,7 @@ from src.util.logger import Logger
 import time
 from src.service.window_service import WindowService
 from src.service.proxy_service import ProxyService
+from decimal import Decimal, InvalidOperation
 
 class FlaskApp:
     def __init__(self, host='0.0.0.0', port=5000, controller=None):
@@ -203,11 +204,74 @@ class FlaskApp:
             code = request.args.get('code')
             status = request.args.get('status')
             amount = request.args.get('amount')
+            price = request.args.get('price')
+
+            requested_price = None
+            if price is not None:
+                requested_price = price.strip()
+                if requested_price == '':
+                    user_message = "你传了价格参数，但价格是空的。请填一个大于0的价格，例如 12.34。"
+                    return jsonify({
+                        "status": "error",
+                        "message": user_message,
+                        "user_message": user_message,
+                        "error_reason": user_message
+                    }), 400
+                try:
+                    price_decimal = Decimal(requested_price)
+                except InvalidOperation:
+                    user_message = f"价格“{requested_price}”看起来不是数字。请改成数字格式，例如 12.34。"
+                    return jsonify({
+                        "status": "error",
+                        "message": user_message,
+                        "user_message": user_message,
+                        "error_reason": user_message
+                    }), 400
+
+                if not price_decimal.is_finite():
+                    user_message = "价格格式不对，请输入正常数字，例如 12.34。"
+                    return jsonify({
+                        "status": "error",
+                        "message": user_message,
+                        "user_message": user_message,
+                        "error_reason": user_message
+                    }), 400
+
+                if price_decimal <= 0:
+                    user_message = "价格必须大于0。请填写一个正常的价格，例如 12.34。"
+                    return jsonify({
+                        "status": "error",
+                        "message": user_message,
+                        "user_message": user_message,
+                        "error_reason": user_message
+                    }), 400
+
+                normalized_price = format(price_decimal, 'f')
+                if '.' in normalized_price:
+                    decimal_length = len(normalized_price.split('.', 1)[1].rstrip('0'))
+                    if decimal_length > 3:
+                        user_message = "价格小数位太多了，最多支持3位小数。请修改后再下单。"
+                        return jsonify({
+                            "status": "error",
+                            "message": user_message,
+                            "user_message": user_message,
+                            "error_reason": user_message
+                        }), 400
+
+                requested_price = normalized_price.rstrip('0').rstrip('.') if '.' in normalized_price else normalized_price
             try:
                 if code is None:
                     return jsonify({"status": "error", "message": "code不能为空"})
                 if status is None:
                     return jsonify({"status": "error", "message": "status不能为空,1:闪电买入,2:闪电卖出"})
+                if status not in ['1', '2']:
+                    user_message = "status参数不对，只能填1或2。1是买入，2是卖出。"
+                    return jsonify({
+                        "status": "error",
+                        "message": user_message,
+                        "user_message": user_message,
+                        "error_reason": user_message
+                    }), 400
                 # 先激活窗口
                 self.controller.handle_activate_window()
                 time.sleep(0.1)
@@ -221,16 +285,54 @@ class FlaskApp:
                 self.window_service.send_key(keyStr)
                 # 获取window
                 window = self.window_service.get_target_window({'class_name': '#32770', 'title':''})
+                if window is None:
+                    user_message = "没有找到闪电下单窗口，请确认同花顺交易窗口已经打开。"
+                    return jsonify({
+                        "status": "error",
+                        "message": user_message,
+                        "user_message": user_message,
+                        "error_reason": user_message
+                    }), 500
+
+                # 如果有price参数，先输入价格（control_id: 1033）
+                if requested_price is not None:
+                    try:
+                        self.window_service.input_text_to_element(window, 1033, requested_price)
+                    except Exception as price_err:
+                        self.logger.add_log(f"价格输入失败: {str(price_err)}")
+                        user_message = "价格输入失败，已中止下单。请检查价格输入框是否可编辑，然后重试。"
+                        return jsonify({
+                            "status": "error",
+                            "message": user_message,
+                            "user_message": user_message,
+                            "error_reason": user_message,
+                            "requested_price": requested_price,
+                            "price_applied": False
+                        }), 500
+
                 # 如果有amount参数
                 if amount:
                     self.window_service.input_text_to_element(window, 1034, amount)
                 
                 # 下单点击
                 self.window_service.click_element(window, 1006)
-                return jsonify({"status": "success", "message": f"已发送按键 {keyStr}"})
+                action_text = "买入" if status == '1' else "卖出"
+                return jsonify({
+                    "status": "success",
+                    "message": f"已发送按键 {keyStr}",
+                    "user_message": f"{action_text}下单请求已发送",
+                    "requested_price": requested_price,
+                    "price_applied": requested_price is not None
+                })
             except Exception as e:
                 self.logger.add_log(f"按键发送失败: {str(e)}")
-                return jsonify({"status": "error", "message": f"下单异常: {str(e)}"})
+                user_message = "下单失败了。请确认交易窗口在前台且可操作，然后再试一次。"
+                return jsonify({
+                    "status": "error",
+                    "message": user_message,
+                    "user_message": user_message,
+                    "error_reason": user_message
+                }), 500
                
         # 撤单接口
         @self.app.route('/cancel_all_orders', methods=['GET'])

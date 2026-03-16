@@ -90,6 +90,12 @@ http://localhost:5000/xiadan?code=600000&status=2
 
 # 买入操作（指定数量）
 http://localhost:5000/xiadan?code=600000&status=1&amount=100
+
+# 买入操作（指定价格）
+http://localhost:5000/xiadan?code=600000&status=1&price=12.34
+
+# 卖出操作（指定价格 + 指定数量）
+http://localhost:5000/xiadan?code=600000&status=2&price=12.34&amount=100
 ```
 
 参数说明：
@@ -97,13 +103,28 @@ http://localhost:5000/xiadan?code=600000&status=1&amount=100
 - `code`: 股票代码，如 600000（浦发银行）
 - `status`: 交易类型，1 表示买入，2 表示卖出
 - `amount`: 交易数量，可选
+- `price`: 交易价格，可选。必须大于 0，最多 3 位小数（例如 12.34）
 
 返回格式：
 
 ```json
 {
   "status": "success",
-  "message": "已发送按键 600000 ENTER 21 ENTER"
+  "message": "已发送按键 600000 ENTER 21 ENTER",
+  "user_message": "买入下单请求已发送",
+  "requested_price": "12.34",
+  "price_applied": true
+}
+```
+
+价格参数错误时的返回示例：
+
+```json
+{
+  "status": "error",
+  "message": "价格“abc”看起来不是数字。请改成数字格式，例如 12.34。",
+  "user_message": "价格“abc”看起来不是数字。请改成数字格式，例如 12.34。",
+  "error_reason": "价格“abc”看起来不是数字。请改成数字格式，例如 12.34。"
 }
 ```
 

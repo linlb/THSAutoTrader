@@ -94,7 +94,7 @@ class AutomationApp:
         self.log(f"HTTP服务已启动")
         self.log(f"本地访问地址：http://localhost:{flask_server.port}/health")
         self.log(f"局域网访问地址：http://<本机IP地址>:{flask_server.port}/health")
-        self.log(f"下单接口：http://<本机IP地址>:{flask_server.port}/xiadan?code=600000&status=1")
+        self.log(f"下单接口：http://<本机IP地址>:{flask_server.port}/xiadan?code=600000&status=1&price=12.34")
         self.log(f"获取持仓接口：http://<本机IP地址>:{flask_server.port}/position")
         return flask_server
 
