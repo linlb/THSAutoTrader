@@ -2,6 +2,7 @@ from src.util.logger import Logger
 from src.models.app_model import AppModel
 from src.service.window_service import WindowService
 from src.service.position_service import PositionService
+from src.service.today_orders_service import TodayOrdersService
 from src.service.trading_service import TradingService
 import os
 class AutomationController:
@@ -10,6 +11,7 @@ class AutomationController:
         self.model = AppModel()
         self.window_service = WindowService()
         self.position_service = PositionService()
+        self.today_orders_service = TodayOrdersService()
         self.trading_service = TradingService()
         self.logger = Logger()
 
@@ -57,6 +59,11 @@ class AutomationController:
         """获取今日成交"""
         self.handle_activate_window()
         return self.position_service.get_today_trades()
+
+    def get_today_orders(self):
+        """获取当日委托"""
+        self.handle_activate_window()
+        return self.today_orders_service.get_today_orders()
 
     def handle_cancel_order(self, order_id=None):
         """处理撤单请求

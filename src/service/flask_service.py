@@ -5,7 +5,7 @@ from src.util.logger import Logger
 import time
 from src.service.window_service import WindowService
 from src.service.proxy_service import ProxyService
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 class FlaskApp:
     def __init__(self, host='0.0.0.0', port=5000, controller=None):
@@ -155,6 +155,21 @@ class FlaskApp:
                 }), 500
 
         # 获取当前页面
+        @self.app.route('/today_orders', methods=['GET'])
+        def get_today_orders():
+            try:
+                orders = self.controller.get_today_orders()
+                return jsonify({
+                    "status": "success",
+                    "data": orders
+                })
+            except Exception as e:
+                self.logger.add_log(f"获取当日委托失败: {str(e)}")
+                return jsonify({
+                    "status": "error",
+                    "message": f"获取当日委托失败: {str(e)}"
+                }), 500
+
         @self.app.route('/current_page', methods=['GET'])
         def get_current_page():
             try:
@@ -204,9 +219,12 @@ class FlaskApp:
             code = request.args.get('code')
             status = request.args.get('status')
             amount = request.args.get('amount')
+            position = request.args.get('position')
             price = request.args.get('price')
 
             requested_price = None
+            amount_int = None
+            position_int = None
             if price is not None:
                 requested_price = price.strip()
                 if requested_price == '':
@@ -246,7 +264,16 @@ class FlaskApp:
                         "error_reason": user_message
                     }), 400
 
-                normalized_price = format(price_decimal, 'f')
+                if price_decimal.as_tuple().exponent < -2:
+                    user_message = "价格最多支持2位小数，请修改后再下单。"
+                    return jsonify({
+                        "status": "error",
+                        "message": user_message,
+                        "user_message": user_message,
+                        "error_reason": user_message
+                    }), 400
+
+                normalized_price = str(price_decimal.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP))
                 if '.' in normalized_price:
                     decimal_length = len(normalized_price.split('.', 1)[1].rstrip('0'))
                     if decimal_length > 3:
@@ -258,7 +285,7 @@ class FlaskApp:
                             "error_reason": user_message
                         }), 400
 
-                requested_price = normalized_price.rstrip('0').rstrip('.') if '.' in normalized_price else normalized_price
+                requested_price = normalized_price
             try:
                 if code is None:
                     return jsonify({"status": "error", "message": "code不能为空"})
@@ -272,6 +299,57 @@ class FlaskApp:
                         "user_message": user_message,
                         "error_reason": user_message
                     }), 400
+
+                # amount参数校验（传了就按amount）
+                if amount is not None and str(amount).strip() != '':
+                    try:
+                        amount_int = int(str(amount).strip())
+                    except ValueError:
+                        user_message = "amount参数必须是整数股数。"
+                        return jsonify({
+                            "status": "error",
+                            "message": user_message,
+                            "user_message": user_message,
+                            "error_reason": user_message
+                        }), 400
+                    if amount_int <= 0:
+                        user_message = "amount必须大于0。"
+                        return jsonify({
+                            "status": "error",
+                            "message": user_message,
+                            "user_message": user_message,
+                            "error_reason": user_message
+                        }), 400
+
+                # amount未传时，必须传position
+                if amount_int is None:
+                    if position is None or str(position).strip() == '':
+                        user_message = "未传amount时必须传position(1/2/3/4)。"
+                        return jsonify({
+                            "status": "error",
+                            "message": user_message,
+                            "user_message": user_message,
+                            "error_reason": user_message
+                        }), 400
+                    try:
+                        position_int = int(str(position).strip())
+                    except ValueError:
+                        user_message = "position参数必须为数字，且只能是1/2/3/4。"
+                        return jsonify({
+                            "status": "error",
+                            "message": user_message,
+                            "user_message": user_message,
+                            "error_reason": user_message
+                        }), 400
+                    if position_int not in [1, 2, 3, 4]:
+                        user_message = "position参数错误，可选值为1,2,3,4。"
+                        return jsonify({
+                            "status": "error",
+                            "message": user_message,
+                            "user_message": user_message,
+                            "error_reason": user_message
+                        }), 400
+
                 # 先激活窗口
                 self.controller.handle_activate_window()
                 time.sleep(0.1)
@@ -283,8 +361,12 @@ class FlaskApp:
                     keyStr = keyStr + '23 ENTER'
 
                 self.window_service.send_key(keyStr)
-                # 获取window
-                window = self.window_service.get_target_window({'class_name': '#32770', 'title':''})
+                # 获取window（按关键控件匹配，避免取错第一个 #32770 对话框）
+                window = self.window_service.get_best_match_window(
+                    {'class_name': '#32770', 'title': ''},
+                    [1006, 0x1006, 1033, 0x1033, 1034, 0x1034],
+                    min_match_count=2
+                )
                 if window is None:
                     user_message = "没有找到闪电下单窗口，请确认同花顺交易窗口已经打开。"
                     return jsonify({
@@ -294,10 +376,15 @@ class FlaskApp:
                         "error_reason": user_message
                     }), 500
 
-                # 如果有price参数，先输入价格（control_id: 1033）
+                # 如果有price参数，先输入价格（兼容十进制/十六进制控件ID）
                 if requested_price is not None:
                     try:
-                        self.window_service.input_text_to_element(window, 1033, requested_price)
+                        self.window_service.input_text_to_element(
+                            window,
+                            [1033, 0x1033],
+                            requested_price,
+                            clear_existing=True
+                        )
                     except Exception as price_err:
                         self.logger.add_log(f"价格输入失败: {str(price_err)}")
                         user_message = "价格输入失败，已中止下单。请检查价格输入框是否可编辑，然后重试。"
@@ -310,19 +397,80 @@ class FlaskApp:
                             "price_applied": False
                         }), 500
 
-                # 如果有amount参数
-                if amount:
-                    self.window_service.input_text_to_element(window, 1034, amount)
+                available_amount = None
+                order_amount = amount_int
+                amount_source = "amount"
+
+                # amount未传时，按position计算下单数量
+                if order_amount is None:
+                    self.logger.add_log("amount未传，按position计算下单数量")
+
+                    # 点击刷新按钮更新可用数量
+                    self.window_service.click_element(window, 1528)
+                    time.sleep(0.1)
+
+                    # 获取可用数量(AutomationId: 1034)
+                    available_element = self.window_service.find_element_in_window(window, 1034)
+                    if available_element is None:
+                        return jsonify({
+                            "status": "error",
+                            "message": "未找到可用数量元素",
+                            "user_message": "未找到可用数量元素",
+                            "error_reason": "未找到可用数量元素"
+                        }), 500
+
+                    available_amount_str = available_element.window_text().strip()
+                    if available_amount_str == '' or available_amount_str == '0':
+                        return jsonify({
+                            "status": "error",
+                            "message": "可用数量为0，无法下单",
+                            "user_message": "可用数量为0，无法下单",
+                            "error_reason": "可用数量为0，无法下单"
+                        }), 400
+
+                    try:
+                        available_amount = int(available_amount_str)
+                    except ValueError:
+                        return jsonify({
+                            "status": "error",
+                            "message": f"可用数量格式错误: {available_amount_str}",
+                            "user_message": f"可用数量格式错误: {available_amount_str}",
+                            "error_reason": f"可用数量格式错误: {available_amount_str}"
+                        }), 500
+
+                    order_amount = (available_amount // position_int // 100) * 100
+                    if order_amount < 100:
+                        return jsonify({
+                            "status": "error",
+                            "message": f"按position计算后的下单数量({order_amount}股)小于100股，无法下单",
+                            "user_message": f"按position计算后的下单数量({order_amount}股)小于100股，无法下单",
+                            "error_reason": f"按position计算后的下单数量({order_amount}股)小于100股，无法下单"
+                        }), 400
+                    amount_source = "position"
+
+                # 输入下单数量
+                self.window_service.input_text_to_element(
+                    window,
+                    [1034, 0x1034],
+                    str(order_amount),
+                    clear_existing=True
+                )
                 
                 # 下单点击
-                self.window_service.click_element(window, 1006)
+                self.window_service.click_element(window, [1006, 0x1006])
                 action_text = "买入" if status == '1' else "卖出"
                 return jsonify({
                     "status": "success",
                     "message": f"已发送按键 {keyStr}",
-                    "user_message": f"{action_text}下单请求已发送",
+                    "user_message": f"{action_text}下单请求已发送，请调用/confirm_order完成确认",
                     "requested_price": requested_price,
-                    "price_applied": requested_price is not None
+                    "price_applied": requested_price is not None,
+                    "data": {
+                        "order_amount": order_amount,
+                        "amount_source": amount_source,
+                        "position": position_int,
+                        "available_amount": available_amount
+                    }
                 })
             except Exception as e:
                 self.logger.add_log(f"按键发送失败: {str(e)}")
@@ -388,91 +536,22 @@ class FlaskApp:
         # 下单确认
         @self.app.route('/confirm_order', methods=['GET'])
         def confirm_order():
-            # 从url上获取参数 position (可用仓位,可选)
-            position = request.args.get('position')
-            position_int = None
-
             try:
-                # 参数校验(仅在传了position参数时)
-                if position is not None:
-                    try:
-                        position_int = int(position)
-                        if position_int not in [1, 2, 3, 4]:
-                            return jsonify({"status": "error", "message": "position参数错误,可选值为1,2,3,4"}), 400
-                    except ValueError:
-                        return jsonify({"status": "error", "message": "position参数必须为数字"}), 400
-
-                # 1. 选中下单确认弹窗
-                window = self.window_service.get_target_window({'class_name': '#32770', 'title':''})
+                # 只做“确认下单”动作，不再处理数量与仓位
+                window = self.window_service.get_best_match_window(
+                    {'class_name': '#32770', 'title': ''},
+                    [1006, 0x1006],
+                    min_match_count=1
+                )
                 if window is None:
                     return jsonify({"status": "error", "message": "未找到下单确认弹窗"}), 500
 
-                # 1.5. 点击刷新按钮更新可用数量
-                self.logger.add_log(f"点击刷新按钮更新可用数量")
-                self.window_service.click_element(window, 1528)
-                time.sleep(0.1)
-
-                # 2. 获取可用数量(AutomationId: 1034)
-                available_element = self.window_service.find_element_in_window(window, 1034)
-                if available_element is None:
-                    return jsonify({"status": "error", "message": "未找到可用数量元素"}), 500
-
-                # 读取可用数量的值
-                available_amount_str = available_element.window_text().strip()
-                self.logger.add_log(f"获取到可用数量: {available_amount_str}")
-
-                # 校验可用数量是否为0或空
-                if available_amount_str == '0' or available_amount_str == '':
-                    return jsonify({"status": "error", "message": f"可用数量为0,无法下单"}), 400
-
-                # 将可用数量转换为数字
-                try:
-                    available_amount = int(available_amount_str)
-                except ValueError:
-                    return jsonify({"status": "error", "message": f"可用数量格式错误: {available_amount_str}"}), 500
-
-                # 计算下单数量
-                if position_int is not None:
-                    # 根据仓位整除计算实际买入数量,向下取100的整
-                    order_amount = (available_amount // position_int // 100) * 100
-                    self.logger.add_log(f"可用数量: {available_amount}, 仓位: 1/{position_int}, 下单数量: {order_amount}")
-
-                    # 校验下单数量是否小于100股
-                    if order_amount < 100:
-                        return jsonify({
-                            "status": "error",
-                            "message": f"计算后的下单数量({order_amount}股)小于100股,无法下单"
-                        }), 400
-
-                    # 3. 根据仓位参数点击对应的仓位选择按钮
-                    # 1对应12092, 2对应12093, 3对应12094, 4对应12095
-                    position_button_id = 12092 + position_int - 1
-                    self.logger.add_log(f"点击仓位选择按钮,AutomationId: {position_button_id}")
-                    self.window_service.click_element(window, position_button_id)
-                    time.sleep(0.1)
-                else:
-                    # 满仓,下单数量等于可用数量
-                    order_amount = available_amount
-                    self.logger.add_log(f"满仓下单,可用数量: {available_amount}, 下单数量: {order_amount}")
-
-                # 4. 点击确认买入按钮(AutomationId: 1006)
                 self.logger.add_log(f"点击确认买入按钮")
-                self.window_service.click_element(window, 1006)
-
-                # 构造返回消息
-                if position_int is not None:
-                    message = f"下单确认成功,仓位:{position_int},可用数量:{available_amount},下单数量:{order_amount}"
-                else:
-                    message = f"下单确认成功,满仓,可用数量:{available_amount},下单数量:{order_amount}"
+                self.window_service.click_element(window, [1006, 0x1006])
 
                 return jsonify({
                     "status": "success",
-                    "message": message,
-                    "data": {
-                        "available_amount": available_amount,
-                        "position": position_int,
-                        "order_amount": order_amount
-                    }
+                    "message": "下单确认成功"
                 })
             except Exception as e:
                 self.logger.add_log(f"下单确认失败: {str(e)}")

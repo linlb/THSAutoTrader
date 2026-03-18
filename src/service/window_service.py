@@ -7,6 +7,7 @@ import win32process
 import ctypes
 from src.util.logger import Logger
 from pywinauto import Desktop
+from pywinauto.keyboard import send_keys
 from pywinauto.clipboard import GetData
 from config.key_config import KEY_MAP
 
@@ -272,6 +273,46 @@ class WindowService:
                 time.sleep(delay)
         return None
 
+    def get_best_match_window(self, window_params, candidate_control_ids, min_match_count=1, retries=3, delay=0.5):
+        """
+        在多个同类窗口中按控件ID匹配度选择最可能的目标窗口
+        """
+        candidate_ids = set(candidate_control_ids or [])
+        for i in range(retries):
+            try:
+                dialogs = Desktop(backend='uia').windows(**window_params)
+                if not dialogs:
+                    time.sleep(delay)
+                    continue
+
+                best_dialog = None
+                best_score = -1
+                for dialog in dialogs:
+                    matched_ids = set()
+                    for element in dialog.descendants():
+                        try:
+                            cid = element.control_id()
+                            if cid in candidate_ids:
+                                matched_ids.add(cid)
+                        except Exception:
+                            continue
+
+                    score = len(matched_ids)
+                    if score > best_score:
+                        best_score = score
+                        best_dialog = dialog
+
+                if best_dialog is not None and best_score >= min_match_count:
+                    self.logger.add_log(f"最佳窗口匹配成功，命中控件数: {best_score}")
+                    return best_dialog
+
+                time.sleep(delay)
+            except Exception as e:
+                if i == retries - 1:
+                    raise Exception(f"按控件匹配窗口失败: {str(e)}")
+                time.sleep(delay)
+        return None
+
     def find_element_in_window(self, window, control_id):
         """
         在指定窗口中查找控件元素
@@ -329,7 +370,14 @@ class WindowService:
         """
         for i in range(retries):
             try:
-                element = self.find_element_in_window(window, control_id)
+                element = None
+                if isinstance(control_id, (list, tuple)):
+                    for cid in control_id:
+                        element = self.find_element_in_window(window, cid)
+                        if element is not None:
+                            break
+                else:
+                    element = self.find_element_in_window(window, control_id)
                 if element is None:
                     raise Exception("未找到目标元素")
                 element.click_input()
@@ -339,7 +387,7 @@ class WindowService:
                     raise Exception(f"点击元素失败: {str(e)}")
                 time.sleep(delay)
 
-    def input_text_to_element(self, window, control_id, text, delay=0.5):
+    def input_text_to_element(self, window, control_id, text, delay=0.5, clear_existing=False):
         """
         向指定输入框元素输入文本内容
         :param window: 目标窗口
@@ -350,16 +398,63 @@ class WindowService:
         """
         try:
             # 查找输入框元素
-            input_element = self.find_element_in_window(window, control_id)
+            input_element = None
+            if isinstance(control_id, (list, tuple)):
+                for cid in control_id:
+                    input_element = self.find_element_in_window(window, cid)
+                    if input_element is not None:
+                        break
+            else:
+                input_element = self.find_element_in_window(window, control_id)
             if input_element is None:
                 raise Exception(f"未找到control_id为{control_id}的输入框元素")
 
             # 聚焦输入框
             input_element.set_focus()
+            input_element.click_input()
             time.sleep(delay)
 
             # 输入新内容
-            input_element.type_keys(text)
+            if clear_existing:
+                for _ in range(3):
+                    try:
+                        input_element.set_edit_text("")
+                    except Exception:
+                        pass
+                    try:
+                        input_element.type_keys("^a{BACKSPACE}", set_foreground=True)
+                    except Exception:
+                        pass
+                    try:
+                        input_element.type_keys("^a{DEL}", set_foreground=True)
+                    except Exception:
+                        pass
+                    try:
+                        input_element.type_keys("{HOME}+{END}{BACKSPACE}", set_foreground=True)
+                    except Exception:
+                        pass
+                    try:
+                        send_keys("^a{BACKSPACE}", pause=0.01)
+                    except Exception:
+                        pass
+
+                    time.sleep(0.05)
+                    try:
+                        current_text = (input_element.window_text() or "").strip()
+                    except Exception:
+                        current_text = ""
+                    if current_text == "":
+                        break
+
+                try:
+                    input_element.type_keys("^a", set_foreground=True)
+                except Exception:
+                    try:
+                        send_keys("^a", pause=0.01)
+                    except Exception:
+                        pass
+
+            input_element.type_keys(str(text), with_spaces=True, set_foreground=True)
             self.logger.add_log(f"成功向输入框(control_id:{control_id})输入文本: {text}")
             return True
 
