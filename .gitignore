@@ -12,3 +12,6 @@ html-bak/
 html/
 dist/html/
 vue-app/
+.idea/
+api_test_results*.json
+test_order_flow_*.json
