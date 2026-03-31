@@ -319,23 +319,49 @@ http://localhost:5000/send_key?key=F12
 >   - F6: 自选股
 >   - F12: 交易
 
-#### 获取当前股票信息接口
+
+#### 健康检查接口
 
 ```bash
-http://localhost:5000/stock_info?code=600000
+http://localhost:5000/health
 ```
 
 返回格式：
 
 ```json
 {
-  "code": 200,
+  "status": "success",
+  "timestamp": 1743392000.0
+}
+```
+
+#### 获取当前页面接口
+
+```bash
+http://localhost:5000/current_page
+```
+
+返回格式：
+
+```json
+{
+  "status": "success",
   "data": {
-    "stock_code": "600000",
-    "stock_name": "浦发银行",
-    "current_price": 7.5,
-    "change": "+0.15",
-    "change_percent": "+2.04%"
+    "class_name": "Afx:00060000:b:00010003:00000006:00010457",
+    "hwnd": 197830,
+    "is_maximized": true,
+    "is_minimized": false,
+    "is_visible": true,
+    "pid": 3692,
+    "rect": {
+      "bottom": 759,
+      "height": 766,
+      "left": -7,
+      "right": 1287,
+      "top": -7,
+      "width": 1294
+    },
+    "title": "同花顺(9.40.90) - 我的板块"
   }
 }
 ```
