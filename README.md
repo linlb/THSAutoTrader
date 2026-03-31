@@ -47,7 +47,7 @@ poetry run dev
 ### 项目打包
 
 ```bash
-poetry run scripts:build
+poetry run build
 ```
 
 ### 前端项目（Vue）

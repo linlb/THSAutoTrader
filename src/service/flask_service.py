@@ -3,6 +3,7 @@ from flask_cors import CORS
 import threading
 from src.util.logger import Logger
 import time
+import pyautogui
 from src.service.window_service import WindowService
 from src.service.proxy_service import ProxyService
 
@@ -173,12 +174,40 @@ class FlaskApp:
         # 鼠标点击
         @self.app.route('/click', methods=['GET'])
         def click():
+            """鼠标点击接口
+            参数:
+                x (int): 点击的x坐标
+                y (int): 点击的y坐标
+            示例:
+                /click?x=100&y=200  # 点击坐标(100, 200)
+            """
             try:
-                self.controller.handle_click()
-                return jsonify({"status": "success", "message": "下单成功"})
+                x = request.args.get('x')
+                y = request.args.get('y')
+
+                # 参数校验
+                if x is None or y is None:
+                    return jsonify({"status": "error", "message": "x和y参数不能为空"}), 400
+
+                try:
+                    x_int = int(x)
+                    y_int = int(y)
+                except ValueError:
+                    return jsonify({"status": "error", "message": "x和y参数必须为整数"}), 400
+
+                # 先激活窗口
+                self.controller.handle_activate_window()
+                time.sleep(0.1)
+                # 移动鼠标到指定坐标并点击
+                pyautogui.click(x_int, y_int)
+                self.logger.add_log(f"坐标点击: ({x_int}, {y_int})")
+                return jsonify({
+                    "status": "success",
+                    "message": f"坐标点击成功: ({x_int}, {y_int})"
+                })
             except Exception as e:
-                self.logger.add_log(f"下单异常: {str(e)}")
-                return jsonify({"status": "error", "message": f"下单异常: {str(e)}"}), 500
+                self.logger.add_log(f"点击异常: {str(e)}")
+                return jsonify({"status": "error", "message": f"点击异常: {str(e)}"}), 500
         
         # send_key
         @self.app.route('/send_key', methods=['GET'])
