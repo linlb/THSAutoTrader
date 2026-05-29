@@ -301,6 +301,9 @@ http://localhost:5000/send_key?key=600000+ENTER
 http://localhost:5000/send_key?key=21+ENTER
 
 # 闪电卖出
+http://localhost:5000/send_key?key=23+ENTER
+
+# 打开委托交易
 http://localhost:5000/send_key?key=F12
 ```
 
@@ -334,6 +337,25 @@ http://localhost:5000/health
   "timestamp": 1743392000.0
 }
 ```
+
+#### 检测下单程序进程接口
+
+检测下单程序（xiadan.exe）进程是否正在运行（纯进程探测，不操作 GUI，不依赖窗口焦点）。
+
+```bash
+http://localhost:5000/check_trading_app
+```
+
+返回格式：
+
+```json
+{
+  "status": "success",
+  "running": true
+}
+```
+
+说明：`running` 为 `true` 表示 xiadan.exe 进程存在，`false` 表示未运行。注意该接口仅判断进程是否存活，不代表程序已登录或下单窗口已就绪。
 
 #### 获取当前页面接口
 

@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import threading
+import functools
 from src.util.logger import Logger
 import time
 import pyautogui
@@ -23,6 +24,13 @@ class FlaskApp:
         self.running = False
         self.thread = None
         self.logger = Logger.get_instance()
+
+        # 全局GUI操作锁: THS窗口是唯一共享资源(焦点/当前页面),
+        # 所有操作窗口的接口必须串行执行,否则并发请求会互相抢焦点、读到错位数据。
+        # 注意: 本次只覆盖HTTP接口,Tkinter界面和window_monitor后台线程暂未纳入同一把锁。
+        self.gui_lock = threading.Lock()
+        # 抢锁超时(秒): 需大于单次GUI操作的最长耗时(如OCR/下单),抢不到返回繁忙避免请求堆积
+        self.gui_lock_timeout = 30
 
         # 初始化代理服务 - 支持高并发
         self.proxy_service = ProxyService(
@@ -98,6 +106,23 @@ class FlaskApp:
             self.logger.add_log(f"HTTP服务启动失败: {str(e)}")
             raise  # 抛出异常以便上层捕获
     def _register_routes(self):
+        # GUI操作互斥装饰器: 串行化所有操作THS窗口的接口
+        def with_gui_lock(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                acquired = self.gui_lock.acquire(timeout=self.gui_lock_timeout)
+                if not acquired:
+                    self.logger.add_log(f"GUI操作繁忙,接口 {func.__name__} 抢锁超时({self.gui_lock_timeout}s)")
+                    return jsonify({
+                        "status": "busy",
+                        "message": "系统繁忙,GUI操作正被占用,请稍后重试"
+                    }), 429
+                try:
+                    return func(*args, **kwargs)
+                finally:
+                    self.gui_lock.release()
+            return wrapper
+
         # 基础健康检查
         @self.app.route('/health', methods=['GET'])
         def health_check():
@@ -105,6 +130,7 @@ class FlaskApp:
         
         # 获取资金余额
         @self.app.route('/balance', methods=['GET'])
+        @with_gui_lock
         def get_balance():
             try:
                 # 调用controller获取资金余额
@@ -122,6 +148,7 @@ class FlaskApp:
         
         # 获取持仓信息
         @self.app.route('/position', methods=['GET'])
+        @with_gui_lock
         def get_position():
             try:
                 # 调用controller获取持仓信息
@@ -139,6 +166,7 @@ class FlaskApp:
 
         # 获取今日成交
         @self.app.route('/today_trades', methods=['GET'])
+        @with_gui_lock
         def get_today_trades():
             try:
                 # 调用controller获取今日成交信息
@@ -156,6 +184,7 @@ class FlaskApp:
 
         # 获取当前页面
         @self.app.route('/current_page', methods=['GET'])
+        @with_gui_lock
         def get_current_page():
             try:
                 # 调用controller获取当前页面信息
@@ -173,6 +202,7 @@ class FlaskApp:
 
         # 鼠标点击
         @self.app.route('/click', methods=['GET'])
+        @with_gui_lock
         def click():
             """鼠标点击接口
             参数:
@@ -211,6 +241,7 @@ class FlaskApp:
         
         # send_key
         @self.app.route('/send_key', methods=['GET'])
+        @with_gui_lock
         def send_key():
             # 从url上获取参数，key
             key = request.args.get('key')
@@ -225,8 +256,19 @@ class FlaskApp:
                 self.logger.add_log(f"按键发送失败: {str(e)}")
                 return jsonify({"status": "error", "message": f"按键发送失败: {str(e)}"})
         
+        # 检测下单程序(xiadan.exe)进程是否在运行(纯进程探测,不操作GUI,无需加锁)
+        @self.app.route('/check_trading_app', methods=['GET'])
+        def check_trading_app():
+            try:
+                running = self.controller.handle_check_trading_app()
+                return jsonify({"status": "success", "running": running})
+            except Exception as e:
+                self.logger.add_log(f"检测下单程序进程失败: {str(e)}")
+                return jsonify({"status": "error", "message": f"检测下单程序进程失败: {str(e)}"}), 500
+
         # 下单点击
         @self.app.route('/xiadan', methods=['GET'])
+        @with_gui_lock
         def xiadan():
             # 从url上获取参数，code
             code = request.args.get('code')
@@ -263,6 +305,7 @@ class FlaskApp:
                
         # 撤单接口
         @self.app.route('/cancel_all_orders', methods=['GET'])
+        @with_gui_lock
         def cancel_all_orders():
             """撤单接口
             参数:
@@ -314,6 +357,7 @@ class FlaskApp:
 
         # 下单确认
         @self.app.route('/confirm_order', methods=['GET'])
+        @with_gui_lock
         def confirm_order():
             # 从url上获取参数 position (可用仓位,可选)
             position = request.args.get('position')

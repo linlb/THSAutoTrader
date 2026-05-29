@@ -91,6 +91,13 @@ class AutomationController:
             self.logger.add_log(f"获取委托单请求失败: {str(e)}")
             raise e
 
+    def handle_check_trading_app(self):
+        """检测下单程序(xiadan.exe)进程是否在运行(纯进程探测)"""
+        app_path = self.model.get_trading_app()
+        running = self.window_service.is_process_running(app_path)
+        self.logger.add_log(f"下单程序进程探测: {'运行中' if running else '未运行'} ({app_path})")
+        return running
+
     def get_current_page(self):
         """获取当前目标应用停留的页面信息"""
         try:

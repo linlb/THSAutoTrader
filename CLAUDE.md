@@ -77,6 +77,7 @@ The Flask service provides these main endpoints:
 - `GET /balance` - Get account balance
 - `GET /cancel_all_orders` - Cancel all pending orders
 - `GET /send_key?key=KEYS` - Send keyboard input to THS client
+- `GET /check_trading_app` - Check whether the trading app process (xiadan.exe) is running (process-only probe, no GUI)
 
 ## Build and Deployment
 
