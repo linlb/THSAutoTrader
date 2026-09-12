@@ -3,14 +3,16 @@ from src.models.app_model import AppModel
 from src.service.window_service import WindowService
 from src.service.position_service import PositionService
 from src.service.trading_service import TradingService
+from src.service.captcha_service import CaptchaService
 import os
 class AutomationController:
     def __init__(self):
         self.view = None
         self.model = AppModel()
         self.window_service = WindowService()
-        self.position_service = PositionService()
-        self.trading_service = TradingService(position_service=self.position_service)
+        self.captcha_service = CaptchaService()
+        self.position_service = PositionService(captcha_service=self.captcha_service)
+        self.trading_service = TradingService(captcha_service=self.captcha_service)
         self.logger = Logger()
 
     def handle_activate_window(self):

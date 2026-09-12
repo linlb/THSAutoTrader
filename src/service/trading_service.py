@@ -2,17 +2,17 @@ import os
 from src.util.logger import Logger
 from src.service.window_service import WindowService
 from src.models.app_model import AppModel
-from src.service.position_service import PositionService
+from src.service.captcha_service import CaptchaService
 from src.util.gui_diagnostics import trace_gui_step
 from src.util.table_parser import parse_tabular_data
 import time
 
 class TradingService:
-    def __init__(self, position_service=None):
+    def __init__(self, captcha_service=None):
         self.window_service = WindowService()
         self.model = AppModel()
         self.logger = Logger()
-        self.position_service = position_service or PositionService()
+        self.captcha_service = captcha_service if captcha_service is not None else CaptchaService()
 
     def get_pending_orders(self):
         trading_path = self.model.get_trading_app()
@@ -42,7 +42,7 @@ class TradingService:
             if not captcha_handled:
                 image_element = trace_gui_step('挂单/查找验证码2405', self.window_service.find_element_in_window, window, 2405)
             if image_element is not None and trace_gui_step('挂单/检查验证码可见性', image_element.is_visible):
-                trace_gui_step('挂单/处理验证码', self.position_service.handle_copy_captcha, image_element)
+                trace_gui_step('挂单/处理验证码', self.captcha_service.handle_copy_captcha, image_element)
                 captcha_handled = True
                 deadline = time.monotonic() + 3
             try:
