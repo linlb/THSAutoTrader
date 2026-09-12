@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import threading
 import functools
+import logging
 from src.util.logger import Logger
 import time
 import pyautogui
@@ -29,6 +30,7 @@ class FlaskApp:
         # 所有操作窗口的接口必须串行执行,否则并发请求会互相抢焦点、读到错位数据。
         # 注意: 本次只覆盖HTTP接口,Tkinter界面和window_monitor后台线程暂未纳入同一把锁。
         self.gui_lock = threading.Lock()
+        self.gui_lock_owner = None
         # 抢锁超时(秒): 需大于单次GUI操作的最长耗时(如OCR/下单),抢不到返回繁忙避免请求堆积
         self.gui_lock_timeout = 30
 
@@ -110,17 +112,32 @@ class FlaskApp:
         def with_gui_lock(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
+                diagnostic_logger = logging.getLogger('FileLogger')
+                thread_id = threading.get_ident()
+                wait_started = time.monotonic()
+                diagnostic_logger.info("GUI等待锁: 接口=%s, 线程=%s", func.__name__, thread_id)
                 acquired = self.gui_lock.acquire(timeout=self.gui_lock_timeout)
                 if not acquired:
-                    self.logger.add_log(f"GUI操作繁忙,接口 {func.__name__} 抢锁超时({self.gui_lock_timeout}s)")
+                    owner = self.gui_lock_owner
+                    diagnostic_logger.warning(
+                        "GUI抢锁超时: 接口=%s, 线程=%s, 等待=%.3fs, 当前持有者=%s, 持有线程=%s, 持有时长=%.3fs",
+                        func.__name__, thread_id, time.monotonic() - wait_started,
+                        owner[0] if owner else '未知或刚释放', owner[1] if owner else None,
+                        time.monotonic() - owner[2] if owner else 0,
+                    )
                     return jsonify({
                         "status": "busy",
                         "message": "系统繁忙,GUI操作正被占用,请稍后重试"
                     }), 429
                 try:
+                    acquired_at = time.monotonic()
+                    self.gui_lock_owner = (func.__name__, thread_id, acquired_at)
+                    diagnostic_logger.info("GUI获得锁: 接口=%s, 线程=%s, 等待=%.3fs", func.__name__, thread_id, acquired_at - wait_started)
                     return func(*args, **kwargs)
                 finally:
+                    self.gui_lock_owner = None
                     self.gui_lock.release()
+                    diagnostic_logger.info("GUI释放锁: 接口=%s, 线程=%s, 持有时长=%.3fs", func.__name__, thread_id, time.monotonic() - acquired_at)
             return wrapper
 
         # 基础健康检查
@@ -162,6 +179,19 @@ class FlaskApp:
                 return jsonify({
                     "status": "error",
                     "message": f"获取持仓失败: {str(e)}"
+                }), 500
+
+        @self.app.route('/pending_orders', methods=['GET'])
+        @with_gui_lock
+        def get_pending_orders():
+            try:
+                orders = self.controller.get_pending_orders()
+                return jsonify({"status": "success", "data": orders})
+            except Exception as e:
+                self.logger.add_log(f"获取挂单列表失败: {str(e)}")
+                return jsonify({
+                    "status": "error",
+                    "message": f"获取挂单列表失败: {str(e)}"
                 }), 500
 
         # 获取今日成交

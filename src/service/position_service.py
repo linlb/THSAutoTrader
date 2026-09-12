@@ -6,6 +6,8 @@ from PIL import Image
 from src.util.logger import Logger
 from src.service.window_service import WindowService
 from src.models.app_model import AppModel
+from src.util.gui_diagnostics import trace_gui_step
+from src.util.table_parser import parse_tabular_data
 
 class PositionService:
     # 类级别的OCR初始化标志和锁
@@ -187,36 +189,31 @@ class PositionService:
             self.logger.add_log(error_msg)
             return ""
 
+    def handle_copy_captcha(self, image_element):
+        captcha_window = trace_gui_step('验证码/定位父窗口', image_element.parent)
+        input_element = trace_gui_step('验证码/查找输入框2404', self.window_service.find_element_in_window, captcha_window, 2404)
+        confirm_button = trace_gui_step('验证码/查找确认按钮', self.window_service.find_element_in_window, captcha_window, 1)
+        if input_element is None or confirm_button is None:
+            raise RuntimeError("无法确认复制验证码弹窗的输入框或确认按钮，已停止操作")
+
+        image_path = trace_gui_step('验证码/准备截图路径', self._get_captcha_image_path)
+        captcha_image = trace_gui_step('验证码/截图', image_element.capture_as_image)
+        trace_gui_step('验证码/保存截图', captcha_image.save, image_path)
+        ocr_text = trace_gui_step('验证码/OCR识别', self._recognize_image_with_ocr, image_path)
+        if not ocr_text:
+            raise RuntimeError("OCR识别复制验证码失败")
+
+        trace_gui_step('验证码/输入', self.window_service.input_text_to_element, captcha_window, 2404, '^a{BACKSPACE}' + ocr_text)
+        time.sleep(0.3)
+        trace_gui_step('验证码/点击确认', confirm_button.click)
+        if not trace_gui_step('验证码/检查输入结果', self._verify_captcha_input, captcha_window):
+            trace_gui_step('验证码/取消错误输入', self._click_button, captcha_window, 2)
+            raise RuntimeError("复制验证码输入错误")
+
     def _get_clipboard_data(self):
         """获取剪切板数据"""
         data = self.window_service.get_clipboard()
-        return self._format_hold_data(data)
-
-    def _format_hold_data(self, table_data: str) -> list[dict]:
-        """将表结构数据转换为JSON格式
-        Args:
-            table_data: 表结构数据，包含表头和内容
-        Returns:
-            返回格式化后的JSON数据列表
-        """
-        # 分割表头和内容
-        lines = table_data.splitlines()
-        if len(lines) < 2:
-            return []
-        
-        # 获取表头
-        headers = lines[0].split('\t')
-        # 处理数据行
-        result = []
-        for line in lines[1:]:
-            values = line.split('\t')
-            if len(values) != len(headers):
-                continue
-            # 构建字典
-            item = {headers[i]: values[i] for i in range(len(headers))}
-            result.append(item)
-        
-        return result 
+        return parse_tabular_data(data)
     
     def get_balance(self):
         """获取资金余额"""

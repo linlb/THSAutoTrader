@@ -10,7 +10,7 @@ class AutomationController:
         self.model = AppModel()
         self.window_service = WindowService()
         self.position_service = PositionService()
-        self.trading_service = TradingService()
+        self.trading_service = TradingService(position_service=self.position_service)
         self.logger = Logger()
 
     def handle_activate_window(self):

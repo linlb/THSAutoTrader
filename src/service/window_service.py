@@ -1,6 +1,7 @@
 import win32gui
 import win32con
 import win32api
+import win32clipboard
 import time
 import os
 import psutil
@@ -319,6 +320,13 @@ class WindowService:
             return result
         
         raise TypeError("control_id参数类型错误，应为int/str或list/tuple")
+
+    def clear_clipboard(self):
+        win32clipboard.OpenClipboard()
+        try:
+            win32clipboard.EmptyClipboard()
+        finally:
+            win32clipboard.CloseClipboard()
 
     def get_clipboard(self, retries=3, delay=0.1):
         """
