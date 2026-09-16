@@ -1,7 +1,9 @@
 import win32gui
 import win32con
 import win32api
+import win32clipboard
 import time
+import os
 import psutil
 import win32process
 import ctypes
@@ -56,6 +58,24 @@ class WindowService:
         except Exception as e:
             self.logger.add_log(f"获取窗口信息失败: {str(e)}")
             raise Exception(f"获取窗口信息失败: {str(e)}")
+
+    def is_process_running(self, app_path):
+        """
+        判断指定程序的进程是否正在运行(纯进程探测,不涉及窗口/登录状态)
+        :param app_path: 程序路径,取其文件名(如 xiadan.exe)进行匹配
+        :return: 运行中返回True,否则返回False
+        """
+        if not app_path:
+            return False
+        target_name = os.path.basename(app_path).lower()
+        for proc in psutil.process_iter(['name']):
+            try:
+                name = proc.info['name']
+                if name and name.lower() == target_name:
+                    return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        return False
 
     def activate_window(self, app_path):
         """
@@ -300,6 +320,13 @@ class WindowService:
             return result
         
         raise TypeError("control_id参数类型错误，应为int/str或list/tuple")
+
+    def clear_clipboard(self):
+        win32clipboard.OpenClipboard()
+        try:
+            win32clipboard.EmptyClipboard()
+        finally:
+            win32clipboard.CloseClipboard()
 
     def get_clipboard(self, retries=3, delay=0.1):
         """

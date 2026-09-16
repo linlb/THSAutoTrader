@@ -3,7 +3,12 @@
     "allow": [
       "Bash(python:*)",
       "Bash(git add:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(python3 -m py_compile src/service/flask_service.py)",
+      "WebSearch",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:simonwillison.net)",
+      "Bash(git commit *)"
     ],
     "deny": [],
     "ask": []

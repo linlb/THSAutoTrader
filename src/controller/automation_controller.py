@@ -3,14 +3,16 @@ from src.models.app_model import AppModel
 from src.service.window_service import WindowService
 from src.service.position_service import PositionService
 from src.service.trading_service import TradingService
+from src.service.captcha_service import CaptchaService
 import os
 class AutomationController:
     def __init__(self):
         self.view = None
         self.model = AppModel()
         self.window_service = WindowService()
-        self.position_service = PositionService()
-        self.trading_service = TradingService()
+        self.captcha_service = CaptchaService()
+        self.position_service = PositionService(captcha_service=self.captcha_service)
+        self.trading_service = TradingService(captcha_service=self.captcha_service)
         self.logger = Logger()
 
     def handle_activate_window(self):
@@ -90,6 +92,13 @@ class AutomationController:
         except Exception as e:
             self.logger.add_log(f"获取委托单请求失败: {str(e)}")
             raise e
+
+    def handle_check_trading_app(self):
+        """检测下单程序(xiadan.exe)进程是否在运行(纯进程探测)"""
+        app_path = self.model.get_trading_app()
+        running = self.window_service.is_process_running(app_path)
+        self.logger.add_log(f"下单程序进程探测: {'运行中' if running else '未运行'} ({app_path})")
+        return running
 
     def get_current_page(self):
         """获取当前目标应用停留的页面信息"""
