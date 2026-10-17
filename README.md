@@ -133,6 +133,30 @@ http://localhost:5000/confirm_order?position=2
 }
 ```
 
+#### 精确数量确认接口（ACM-269）
+
+`GET /confirm_order_exact?amount=300`，用于自动买入精确股数链。调用前必须由客户端原生
+`placeOrder(0, stockCode, explicitLimitPrice, amount)` 调起对应股票的闪电下单窗口，传入明确限价和股数。
+本接口只接受一个 `amount` 参数，必须是正整数且为 100 股的整数倍；禁止混用 `position` 或其他参数。
+旧服务没有此路由时会返回 404，前端必须停止，**不可回退 `/confirm_order` 或 `/xiadan`**。
+
+本接口与其他 GUI 操作共用锁，不点击刷新按钮 1528、不点击仓位按钮。
+仅对已有数量控件 1034 全选替换并严格回读一致后，点击提交按钮 1006 一次；输入失败、回读不一致均不点击提交。
+没有价格控件读回证据，价格依赖上述原生显式限价调窗，不能将数量校验称为价格或预算校验。
+
+成功响应示例：
+
+```json
+{"status":"success","message":"精确数量已回读并点击提交，委托和成交仍须查询核验","data":{"order_amount":300,"quantity_verified":true,"price_verified":false}}
+```
+
+参数错误返回 400，GUI 被占用返回 429，窗口、输入、读回或点击异常返回 500。
+成功仅表示点击提交，不表示券商受理或成交；前端仍须查询挂单、成交并保留防重与预算占用。
+超时或点击异常可能已有真实委托，不可自动重试。原生调窗与此 HTTP 调用并非原子操作，调用方须避免其他操作切换窗口。
+
+已通过模拟窗口的无 GUI 测试，**尚未在真实 Windows 同花顺客户端验证，也未部署或真实下单**。
+测试命令：安装 `flask flask-cors pytest` 后执行 `python -m pytest tests/test_confirm_order_exact.py`。
+
 #### 获取当前挂单列表
 
 **请求：** `GET /pending_orders`，无需参数和请求体。目前不支持传入股票代码筛选，也不执行指定股票撤单。

@@ -385,6 +385,52 @@ class FlaskApp:
                 self.logger.add_log(f"撤单失败: {str(e)}")
                 return jsonify({"status": "error", "message": f"撤单失败: {str(e)}"})
 
+        # 精确数量确认：原生调窗已经传入明确限价，禁止刷新或仓位按钮覆盖。
+        @self.app.route('/confirm_order_exact', methods=['GET'])
+        @with_gui_lock
+        def confirm_order_exact():
+            amounts = request.args.getlist('amount')
+            if set(request.args) != {'amount'} or len(amounts) != 1:
+                return jsonify({"status": "error", "message": "仅允许单个amount参数，不可混用position"}), 400
+            amount_text = amounts[0]
+            try:
+                if not amount_text.isascii() or not amount_text.isdecimal():
+                    raise ValueError()
+                amount = int(amount_text)
+                if amount <= 0 or amount % 100 != 0:
+                    raise ValueError()
+            except ValueError:
+                return jsonify({"status": "error", "message": "amount必须为正整数且为100股的整数倍"}), 400
+
+            try:
+                window = self.window_service.get_target_window({'class_name': '#32770', 'title': ''})
+                if window is None:
+                    raise ValueError("未找到下单确认弹窗")
+                quantity_element = self.window_service.find_element_in_window(window, 1034)
+                if quantity_element is None:
+                    raise ValueError("未找到数量输入框")
+                quantity_element.set_focus()
+                quantity_element.type_keys('^a{BACKSPACE}')
+                quantity_element.type_keys(str(amount))
+                # 回读只校验数量；没有价格控件证据，不能声称校验了限价。
+                readback = quantity_element.window_text().strip()
+                if readback != str(amount):
+                    raise ValueError("数量输入框回读与请求不一致，停止提交")
+                # 提交点击不可重试：异常也可能已经产生真实委托。
+                self.window_service.click_element(window, 1006, retries=1)
+                return jsonify({
+                    "status": "success",
+                    "message": "精确数量已回读并点击提交，委托和成交仍须查询核验",
+                    "data": {
+                        "order_amount": amount,
+                        "quantity_verified": True,
+                        "price_verified": False,
+                    }
+                })
+            except Exception as e:
+                self.logger.add_log(f"精确数量确认异常: {str(e)}")
+                return jsonify({"status": "error", "message": f"精确数量确认异常: {str(e)}"}), 500
+
         # 下单确认
         @self.app.route('/confirm_order', methods=['GET'])
         @with_gui_lock
