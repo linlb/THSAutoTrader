@@ -34,84 +34,37 @@ def service(monkeypatch):
                            gui=app.window_service, element=element, window=window)
 
 
-def test_exact_quantity_readback_before_single_submit(service):
-    trace = MagicMock()
-    trace.attach_mock(service.element, 'quantity')
-    trace.attach_mock(service.gui.click_element, 'click')
-    response = service.client.get('/confirm_order_exact?amount=300')
-    assert response.status_code == 200
-    assert response.json['data'] == {
-        'order_amount': 300, 'quantity_verified': True, 'price_verified': False}
-    assert trace.mock_calls == [
-        call.quantity.set_focus(), call.quantity.type_keys('^a{BACKSPACE}'),
-        call.quantity.type_keys('300'), call.quantity.window_text(),
-        call.click(service.window, 1006, retries=1)]
-    service.gui.find_element_in_window.assert_called_once_with(service.window, 1034)
-    assert service.app.gui_lock_owner is None
-    assert not service.app.gui_lock.locked()
-
-
 @pytest.mark.parametrize('query', [
-    '', 'amount=', 'amount=0', 'amount=-100', 'amount=50', 'amount=100.0',
-    'amount=1e2', 'amount=%2B100', 'amount=%20100', 'amount=１００',
-    'amount=abc', 'amount=100&amount=200', 'amount=100&position=2',
-    'amount=100&position=', 'amount=100&price=10', 'position=2',
+    '', 'amount=300', 'amount=0', 'amount=-100', 'amount=50',
+    'amount=100&amount=200', 'amount=100&position=2',
+    'amount=300&stockCode=600000&side=buy&price=10.00',
+    'amount=300&price_verified=true&quantity_verified=true',
+    'amount=300&enabled=true&debug=true',
 ])
-def test_invalid_parameters_never_touch_gui(service, query):
+def test_exact_route_disabled_without_any_gui_operation(service, query):
     response = service.client.get('/confirm_order_exact?' + query)
-    assert response.status_code == 400
-    service.gui.get_target_window.assert_not_called()
-    service.gui.click_element.assert_not_called()
+    assert response.status_code == 503
+    assert response.json['status'] == 'error'
+    assert response.json['code'] == 'EXACT_ORDER_NOT_VALIDATED'
+    assert 'data' not in response.json
+    assert service.gui.mock_calls == []
+    assert service.element.mock_calls == []
 
 
-@pytest.mark.parametrize('readback', ['', '200', '3000', '300.0', '３００', '300 shares'])
-def test_readback_failure_never_submits(service, readback):
-    service.element.window_text.return_value = readback
-    assert service.client.get('/confirm_order_exact?amount=300').status_code == 500
-    service.gui.click_element.assert_not_called()
-
-
-@pytest.mark.parametrize('failure', ['window', 'element', 'focus', 'clear', 'write', 'read'])
-def test_gui_failure_never_submits_and_releases_lock(service, failure):
-    if failure == 'window':
-        service.gui.get_target_window.return_value = None
-    elif failure == 'element':
-        service.gui.find_element_in_window.return_value = None
-    elif failure == 'focus':
-        service.element.set_focus.side_effect = RuntimeError('focus failed')
-    elif failure == 'clear':
-        service.element.type_keys.side_effect = RuntimeError('clear failed')
-    elif failure == 'write':
-        service.element.type_keys.side_effect = [None, RuntimeError('write failed')]
-    else:
-        service.element.window_text.side_effect = RuntimeError('read failed')
-    response = service.client.get('/confirm_order_exact?amount=300')
-    assert response.status_code == 500
-    service.gui.click_element.assert_not_called()
-    assert not service.app.gui_lock.locked()
-
-
-def test_click_exception_does_not_retry(service):
-    service.gui.click_element.side_effect = RuntimeError('could already have submitted')
-    response = service.client.get('/confirm_order_exact?amount=300')
-    assert response.status_code == 500
-    service.gui.click_element.assert_called_once_with(service.window, 1006, retries=1)
-    assert not service.app.gui_lock.locked()
-
-
-def test_gui_lock_blocks_exact_route(service):
-    service.app.gui_lock_timeout = 0
+def test_disabled_route_does_not_wait_for_gui_or_release_another_owner_lock(service):
     service.app.gui_lock.acquire()
     try:
-        assert service.client.get('/confirm_order_exact?amount=300').status_code == 429
-        service.gui.get_target_window.assert_not_called()
+        response = service.client.get('/confirm_order_exact?amount=300')
+        assert response.status_code == 503
+        assert service.app.gui_lock.locked()
+        assert service.gui.mock_calls == []
     finally:
         service.app.gui_lock.release()
 
 
 def test_exact_route_only_accepts_get(service):
     assert service.client.post('/confirm_order_exact?amount=300').status_code == 405
-    service.gui.get_target_window.assert_not_called()
+    assert service.gui.mock_calls == []
 
 
 @pytest.mark.parametrize('query,amount,buttons', [
