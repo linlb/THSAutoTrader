@@ -385,16 +385,6 @@ class FlaskApp:
                 self.logger.add_log(f"撤单失败: {str(e)}")
                 return jsonify({"status": "error", "message": f"撤单失败: {str(e)}"})
 
-        # ACM-269：旧分步确认无法绑定股票/方向/限价，禁止触碰窗口或提交。
-        # 必须完成原子打开、身份/价格/数量核验及 Windows 客户端验证后另行实现。
-        @self.app.route('/confirm_order_exact', methods=['GET'])
-        def confirm_order_exact():
-            return jsonify({
-                "status": "error",
-                "code": "EXACT_ORDER_NOT_VALIDATED",
-                "message": "精确买入已禁用：原子订单身份/限价核验及客户端验证尚未完成",
-            }), 503
-
         # 下单确认
         @self.app.route('/confirm_order', methods=['GET'])
         @with_gui_lock

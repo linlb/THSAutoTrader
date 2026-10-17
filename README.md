@@ -133,26 +133,6 @@ http://localhost:5000/confirm_order?position=2
 }
 ```
 
-#### 精确数量确认接口（ACM-269，已硬性禁用）
-
-`GET /confirm_order_exact` 对所有参数一律返回 HTTP 503，不查找窗口、不输入、不点击。
-旧分步实现已删除：仅回读数量无法核实股票、方向或实际委托限价，原生调窗与 HTTP
-确认之间还可能切换弹窗。`quantity_verified:true` 或 `price_verified:false` 不能作为成功证据。
-
-```json
-{"status":"error","code":"EXACT_ORDER_NOT_VALIDATED","message":"精确买入已禁用：原子订单身份/限价核验及客户端验证尚未完成"}
-```
-
-配套前端同样在调窗前硬性禁用 V2 自动买入，确认函数不发送 HTTP 请求；不能通过配置、
-调试参数解除，也不得回退 `/confirm_order` 或 `/xiadan`。旧手动接口保持原行为。
-
-恢复条件仍未满足：需要真实 Windows 客户端的窗口身份与股票/方向/价格/数量控件证据，
-将打开、核验和单次提交纳入同一原子链，并排除其他 GUI 写入方的并发干扰；随后完成
-Windows/Chrome84 隔离验证。当前实现不具备实盘上线条件，不得合并、部署或启用自动交易。
-
-测试只验证 HTTP 拒绝且没有 GUI 副作用及旧接口回归，不证明原子链已经实现。
-测试命令：安装 `flask flask-cors pytest` 后执行 `python -m pytest tests/test_confirm_order_exact.py`。
-
 #### 获取当前挂单列表
 
 **请求：** `GET /pending_orders`，无需参数和请求体。目前不支持传入股票代码筛选，也不执行指定股票撤单。
