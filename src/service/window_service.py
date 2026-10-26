@@ -292,6 +292,17 @@ class WindowService:
                 time.sleep(delay)
         return None
 
+    def wait_for_window_close(self, hwnd, timeout=2.0, interval=0.2):
+        """只观察原窗口句柄，销毁或隐藏视为关闭；读取失败继续向上抛出。"""
+        deadline = time.monotonic() + timeout
+        while True:
+            if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+                return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            time.sleep(min(interval, remaining))
+
     def find_element_in_window(self, window, control_id):
         """
         在指定窗口中查找控件元素

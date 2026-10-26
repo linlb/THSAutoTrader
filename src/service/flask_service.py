@@ -456,9 +456,20 @@ class FlaskApp:
                     order_amount = available_amount
                     self.logger.add_log(f"满仓下单,可用数量: {available_amount}, 下单数量: {order_amount}")
 
-                # 4. 点击确认买入按钮(AutomationId: 1006)
-                self.logger.add_log(f"点击确认买入按钮")
-                self.window_service.click_element(window, 1006)
+                # 4. 提交只点击一次，随后检查原弹窗，避免重复提交。
+                hwnd = window.handle
+                self.logger.add_log(f"点击下单提交按钮,窗口句柄:{hwnd}")
+                self.window_service.click_element(window, 1006, retries=1)
+
+                try:
+                    dialog_closed = self.window_service.wait_for_window_close(hwnd)
+                except Exception as e:
+                    raise Exception(f"提交后弹窗状态未知,窗口句柄:{hwnd},需核验委托和成交: {e}") from e
+                if not dialog_closed:
+                    message = f"提交后弹窗未关闭,窗口句柄:{hwnd},需核验委托和成交,未再次点击"
+                    self.logger.add_log(message)
+                    return jsonify({"status": "error", "message": message}), 500
+                self.logger.add_log(f"提交后原弹窗已关闭或隐藏,窗口句柄:{hwnd},仍需核验委托和成交")
 
                 # 构造返回消息
                 if position_int is not None:
