@@ -113,11 +113,20 @@ http://localhost:5000/confirm_order
 
 # 下单确认（指定仓位）
 http://localhost:5000/confirm_order?position=2
+
+# 下单确认（指定数量，单位沿用客户端数量输入框）
+http://localhost:5000/confirm_order?amount=300
 ```
 
 参数说明：
 
-- `position`: 仓位参数，可选值为 1/2/3/4，不传则满仓
+- `position`: 可选仓位参数，取值为 1/2/3/4，沿用原仓位按钮操作与按 100 取整的展示数量。
+- `amount`: 可选指定数量，必须为正整数；与 `position` 互斥（即使其中一个为空串也不允许同时传入）。不强制 100 的倍数、不取整，证券申报规则由客户端/券商校验。
+- 两参数都不传时沿用原满仓行为。接口只确认当前已打开的闪电下单窗口，不接收证券代码、方向或价格参数。
+
+指定 `amount` 时先点击刷新按钮 `1528`，从数量框 `1034` 读取刷新后的可用数量，再检查请求数量不超过该值。随后精确替换同一数量框并回读核对，一致后才点击 `1006`；不点击仓位按钮，填写后不再刷新。这里的 `available_amount` 来自同一数量框，不是新增的独立账户额度查询。全过程复用现有 GUI 互斥锁。
+
+成功只表示 GUI 确认动作已执行，不表示券商已接受或已成交。失败后应先检查客户端状态，不要自动重试整笔下单。
 
 返回格式：
 
@@ -132,6 +141,37 @@ http://localhost:5000/confirm_order?position=2
   }
 }
 ```
+
+指定数量响应示例（HTTP 200）：
+
+```json
+{
+  "status": "success",
+  "message": "已执行GUI确认,可用数量:1000,指定数量:300",
+  "data": {"available_amount": 1000, "position": null, "order_amount": 300}
+}
+```
+
+错误示例（HTTP 400）：
+
+```text
+GET /confirm_order?amount=300&position=2
+{"status":"error","message":"amount与position不能同时传入"}
+
+GET /confirm_order?amount=
+{"status":"error","message":"amount参数必须为正整数"}
+
+GET /confirm_order?amount=1001
+{"status":"error","message":"指定数量(1001)超过可用数量(1000)"}
+```
+
+空串、0、负数、小数、非数字 `amount` 在任何窗口操作前返回 400；超过可用数量也返回 400，不缩减数量或回退满仓。无有效可用数量时停止确认：空/非正数返回 400，格式或读取失败返回 500。窗口/控件缺失、替换失败、回读失败或不一致均返回 500，且不点击确认，例如：
+
+```json
+{"status":"error","message":"下单确认失败: 数量回读不一致: 请求300, 实际1000300"}
+```
+
+GUI 锁超时返回 HTTP 429、`status: "busy"`。本功能的 mock 测试可在隔离虚拟环境安装 `Flask`、`Flask-Cors>=5,<6`、`pytest` 后运行 `python -m pytest tests/test_confirm_order.py`；测试不连接真实客户端。Windows UIA 控件适配仍需隔离桌面验证，禁止以真实委托或撤单作为冒烟测试。
 
 #### 获取当前挂单列表
 

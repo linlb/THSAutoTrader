@@ -3,6 +3,7 @@ from flask_cors import CORS
 import threading
 import functools
 import logging
+import re
 from src.util.logger import Logger
 import time
 import pyautogui
@@ -389,11 +390,25 @@ class FlaskApp:
         @self.app.route('/confirm_order', methods=['GET'])
         @with_gui_lock
         def confirm_order():
-            # 从url上获取参数 position (可用仓位,可选)
             position = request.args.get('position')
+            amount = request.args.get('amount')
             position_int = None
+            amount_int = None
 
             try:
+                # 在任何窗口操作前校验；空参数也算已传入，不能回退满仓。
+                if amount is not None:
+                    if position is not None:
+                        return jsonify({"status": "error", "message": "amount与position不能同时传入"}), 400
+                    if not re.fullmatch(r'[0-9]+', amount):
+                        return jsonify({"status": "error", "message": "amount参数必须为正整数"}), 400
+                    try:
+                        amount_int = int(amount)
+                    except ValueError:
+                        return jsonify({"status": "error", "message": "amount参数必须为正整数"}), 400
+                    if amount_int <= 0:
+                        return jsonify({"status": "error", "message": "amount参数必须为正整数"}), 400
+
                 # 参数校验(仅在传了position参数时)
                 if position is not None:
                     try:
@@ -432,8 +447,17 @@ class FlaskApp:
                 except ValueError:
                     return jsonify({"status": "error", "message": f"可用数量格式错误: {available_amount_str}"}), 500
 
-                # 计算下单数量
-                if position_int is not None:
+                if available_amount <= 0:
+                    return jsonify({"status": "error", "message": "可用数量必须大于0,无法下单"}), 400
+
+                # 指定数量不取整、不点击仓位按钮；覆盖并核对后才允许确认。
+                if amount_int is not None:
+                    self.logger.add_log(f"指定数量确认: 可用数量:{available_amount}, 请求数量:{amount_int}")
+                    if amount_int > available_amount:
+                        return jsonify({"status": "error", "message": f"指定数量({amount_int})超过可用数量({available_amount})"}), 400
+                    self.window_service.replace_text_in_element_and_verify(window, 1034, str(amount_int))
+                    order_amount = amount_int
+                elif position_int is not None:
                     # 根据仓位整除计算实际买入数量,向下取100的整
                     order_amount = (available_amount // position_int // 100) * 100
                     self.logger.add_log(f"可用数量: {available_amount}, 仓位: 1/{position_int}, 下单数量: {order_amount}")
@@ -460,8 +484,10 @@ class FlaskApp:
                 self.logger.add_log(f"点击确认买入按钮")
                 self.window_service.click_element(window, 1006)
 
-                # 构造返回消息
-                if position_int is not None:
+                # 成功只表示GUI确认动作执行，不代表券商接受或成交。
+                if amount_int is not None:
+                    message = f"已执行GUI确认,可用数量:{available_amount},指定数量:{order_amount}"
+                elif position_int is not None:
                     message = f"下单确认成功,仓位:{position_int},可用数量:{available_amount},下单数量:{order_amount}"
                 else:
                     message = f"下单确认成功,满仓,可用数量:{available_amount},下单数量:{order_amount}"

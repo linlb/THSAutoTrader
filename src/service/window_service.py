@@ -395,6 +395,22 @@ class WindowService:
             self.logger.add_log(error_msg)
             raise Exception(error_msg)
 
+    def replace_text_in_element_and_verify(self, window, control_id, text, delay=0.1):
+        """精确替换确认数量并回读；任何失败均抛出异常，不重试提交。"""
+        input_element = self.find_element_in_window(window, control_id)
+        if input_element is None:
+            raise RuntimeError(f"未找到control_id为{control_id}的输入框元素")
+
+        input_element.set_focus()
+        # UIA EditWrapper 的 set_edit_text 替换整个值，避免 type_keys 追加原值。
+        # 不使用键盘回退，控件不支持精确替换时直接停止确认。
+        input_element.set_edit_text(text)
+        time.sleep(delay)
+        actual_text = input_element.window_text().strip()
+        self.logger.add_log(f"数量回读(control_id:{control_id}): 请求:{text}, 实际:{actual_text}")
+        if actual_text != text:
+            raise RuntimeError(f"数量回读不一致: 请求{text}, 实际{actual_text}")
+
     def find_element_by_tree_path(self, window, root_control_id, path_names):
         """
         在树形结构中按路径查找元素
